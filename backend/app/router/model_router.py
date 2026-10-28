@@ -9,10 +9,13 @@ MODE picks the provider chain. If one provider fails, the next one answers,
 so the demo never breaks. Every answer is cached on disk.
 """
 import base64
+import io
 import json
 import logging
 import re
 import time
+
+from PIL import Image
 
 from app.config import Settings, get_settings
 from app.router.cache import DiskCache
@@ -43,6 +46,21 @@ def _extract_json(text: str) -> dict:
     if start == -1 or end == -1:
         raise ValueError("no JSON object found")
     return json.loads(text[start:end + 1])
+
+
+def _shrink(image_bytes: bytes, max_side: int = 1280) -> tuple[bytes, str]:
+    """Resize big images and re-encode as PNG. Vision models fail or slow down on huge files."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img.load()
+    except Exception:
+        return image_bytes, "image/png"  # not a real image (e.g. tests); send as is
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    img.thumbnail((max_side, max_side))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue(), "image/png"
 
 
 class ModelRouter:
@@ -101,6 +119,7 @@ class ModelRouter:
 
     def see(self, prompt: str, image_bytes: bytes, mime: str = "image/png",
             system: str | None = None) -> dict:
+        image_bytes, mime = _shrink(image_bytes)
         data_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
         sys_msg = (system or "") + "\nReply with one JSON object only. No prose."
         msgs = [{"role": "system", "content": sys_msg.strip()},

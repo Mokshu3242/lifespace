@@ -28,13 +28,13 @@ class Settings(BaseSettings):
     cloudflare_account_id: str = ""
     cloudflare_api_token: str = ""
     cloudflare_chat_model: str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-    cloudflare_vision_model: str = "@cf/meta/llama-3.2-11b-vision-instruct"
+    cloudflare_vision_model: str = "@cf/meta/llama-4-scout-17b-16e-instruct"
     cloudflare_image_model: str = "@cf/black-forest-labs/flux-1-schnell"
 
     # Ollama on your laptop (free, offline)
     ollama_url: str = "http://localhost:11434"
     ollama_chat_model: str = "llama3.2"
-    ollama_vision_model: str = "llama3.2-vision"
+    ollama_vision_model: str = "qwen2.5vl:7b"
 
     # Cache every AI call so repeat runs are free
     cache_dir: Path = ROOT / ".cache" / "ai"
