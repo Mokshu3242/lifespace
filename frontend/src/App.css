@@ -1,0 +1,40 @@
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 16px;
+}
+header h1 { margin: 0; font-size: 2.2rem; }
+.tag { margin: 4px 0 24px; color: var(--muted); }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.status { margin: 0; padding-left: 18px; line-height: 1.8; }
+.bad { color: #c0392b; }
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f6f5e;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+.answer { margin-top: 12px; }
+.meta { color: var(--muted); font-size: 0.85rem; }
