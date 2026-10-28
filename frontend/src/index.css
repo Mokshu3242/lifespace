@@ -1,9 +1,12 @@
 :root {
-  --bg: #f7f6f2;
+  --bg: #f4f2ec;
   --card: #ffffff;
   --ink: #1d2320;
   --muted: #5f6b66;
   --line: #dcd9d0;
+  --accent: #2f6f5e;
+  --bad: #b3382c;
+  --warn-bg: #fbf0d9;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--ink);
   background: var(--bg);
@@ -15,6 +18,9 @@
     --ink: #e8ece9;
     --muted: #9aa6a1;
     --line: #2e3532;
+    --accent: #3f8f79;
+    --bad: #f08a7e;
+    --warn-bg: #3a3220;
   }
 }
-body { margin: 0; }
+body { margin: 0; background: var(--bg); }

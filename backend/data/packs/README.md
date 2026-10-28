@@ -1,6 +1,6 @@
 # Packs
 
-Each space type is a pack. Filled in on Day 3 and Day 4.
+Each space type is a pack. Each folder holds the catalog of real items and the AI people for that space.
 
 ```
 packs/

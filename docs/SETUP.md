@@ -17,7 +17,7 @@ Do these in order. Total time: about 45 minutes.
 ```bash
 git init -b main
 git add .
-git commit -m "Day 1: project setup, model router, frontend shell"
+git commit -m "Project setup, model router, frontend shell"
 git remote add origin https://github.com/<your-username>/lifespace.git
 git push -u origin main
 ```
@@ -64,7 +64,7 @@ You need at least one of these. Both is best, so one backs up the other.
 
 ```bash
 ollama pull llama3.2
-ollama pull llama3.2-vision
+ollama pull qwen2.5vl:7b
 ```
 
 3. Ollama runs on `http://localhost:11434`. Nothing to add to `.env`.
@@ -83,7 +83,7 @@ CLOUDFLARE_API_TOKEN=...
 
 Cloudflare also does the free image renders in local mode.
 
-## 6. Day 1 done check
+## 6. Check that it works
 
 With `MODE=local` in `.env`:
 
@@ -95,7 +95,7 @@ python -m scripts.smoke_test path/to/any-floor-plan.png   # tests vision too
 
 You should see an answer and `answered by: ollama` or `cloudflare`. In the browser, the "Ask the model" button should work too.
 
-## 7. Later: switch to production (Day 6)
+## 7. Later: switch to production
 
 When the Meta credits land:
 
@@ -105,7 +105,7 @@ META_API_KEY=...
 BASETEN_API_KEY=...
 ```
 
-Restart the backend. Same code, official models. Muse Image is wired on Day 6, until then renders fall back to Cloudflare.
+Restart the backend. Same code, official models. Until Muse Image is wired in, renders fall back to Cloudflare.
 
 ## Troubleshooting
 

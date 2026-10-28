@@ -1,70 +1,82 @@
 import { useEffect, useState } from 'react'
+import PlanEditor from './PlanEditor'
+import { api } from './api'
 import './App.css'
 
 export default function App() {
   const [health, setHealth] = useState(null)
-  const [error, setError] = useState(null)
-  const [prompt, setPrompt] = useState('Describe a cozy, accessible living room in one sentence.')
-  const [answer, setAnswer] = useState(null)
+  const [backendDown, setBackendDown] = useState(false)
+  const [space, setSpace] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then(setHealth)
-      .catch(() => setError('Backend not reachable. Is uvicorn running on port 8000?'))
+    api.health().then(setHealth).catch(() => setBackendDown(true))
+    const id = new URLSearchParams(location.search).get('space')
+    if (id) api.getSpace(id).then(setSpace).catch(() => {})
   }, [])
 
-  async function ask() {
+  async function upload(file) {
+    if (!file) return
     setBusy(true)
-    setAnswer(null)
+    setError(null)
     try {
-      const r = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      })
-      const data = await r.json()
-      setAnswer(r.ok ? data : { text: data.detail, provider: 'error' })
-    } catch {
-      setAnswer({ text: 'Request failed.', provider: 'error' })
+      const s = await api.uploadPlan(file)
+      setSpace(s)
+      history.replaceState(null, '', `?space=${s.id}`)
+    } catch (e) {
+      setError(e.message)
     }
     setBusy(false)
   }
 
+  function reset() {
+    setSpace(null)
+    history.replaceState(null, '', location.pathname)
+  }
+
   return (
-    <main className="shell">
-      <header>
-        <h1>LifeSpace</h1>
-        <p className="tag">Design any space. Watch AI people live in it.</p>
+    <main className={space ? 'shell wide' : 'shell'}>
+      <header className="top">
+        <div>
+          <h1>LifeSpace</h1>
+          <p className="tag">Design any space. Watch AI people live in it.</p>
+        </div>
+        {health && <span className="pill">{health.mode} mode</span>}
       </header>
 
-      <section className="card">
-        <h2>System status</h2>
-        {error && <p className="bad">{error}</p>}
-        {health && (
-          <ul className="status">
-            <li>Mode: <strong>{health.mode}</strong></li>
-            <li>Chat chain: {health.chain.chat.join(' → ')}</li>
-            <li>Image chain: {health.chain.image.join(' → ')}</li>
-          </ul>
-        )}
-        {!health && !error && <p>Checking backend…</p>}
-      </section>
+      {backendDown && (
+        <p className="bad">Backend not reachable. Start it with: uvicorn app.main:app --reload --port 8000</p>
+      )}
 
-      <section className="card">
-        <h2>Router test</h2>
-        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} />
-        <button onClick={ask} disabled={busy || !health}>
-          {busy ? 'Asking…' : 'Ask the model'}
-        </button>
-        {answer && (
-          <div className="answer">
-            <p>{answer.text}</p>
-            <p className="meta">answered by: {answer.provider}</p>
-          </div>
-        )}
-      </section>
+      {!space && (
+        <section
+          className={dragOver ? 'drop on' : 'drop'}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files[0]) }}
+        >
+          {busy ? (
+            <>
+              <div className="spinner" />
+              <p>Reading your plan… the vision model takes 20 to 60 seconds locally.</p>
+            </>
+          ) : (
+            <>
+              <h2>Upload a floor plan</h2>
+              <p>Drop a PNG or JPG here, or choose a file. Plans with printed room sizes work best.</p>
+              <label className="file-btn">
+                Choose file
+                <input type="file" accept="image/png,image/jpeg" onChange={(e) => upload(e.target.files[0])} hidden />
+              </label>
+            </>
+          )}
+          {error && <p className="bad">{error}</p>}
+        </section>
+      )}
+
+      {space && <PlanEditor key={space.id} space={space} onReset={reset} />}
     </main>
   )
 }

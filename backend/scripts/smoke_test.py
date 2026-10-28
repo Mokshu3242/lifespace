@@ -1,4 +1,4 @@
-"""Day 1 done check: call the router with your real keys and see who answers.
+"""Smoke test: call the router with your real keys and see who answers.
 
     cd backend
     python -m scripts.smoke_test              # uses MODE from .env

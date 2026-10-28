@@ -74,7 +74,7 @@ class CloudflareImageProvider:
 class MetaImageProvider:
     """Muse Image / Muse Wonder on the Meta Model API.
 
-    TODO(day 6): fill in once credits land and we read the image docs.
+    TODO: fill in once Meta credits land and we read the image docs.
     Until then it raises, so the router falls back to the free renderer.
     """
 
