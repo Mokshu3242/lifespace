@@ -81,3 +81,45 @@ def test_extract_json_from_fences():
 def test_bad_mode(tmp_path):
     with pytest.raises(ValueError):
         make_router(tmp_path, mode="nope")
+
+
+def test_local_vision_chain_setting(tmp_path):
+    r = ModelRouter(Settings(mode="local", cache_dir=tmp_path, local_vision_chain="cloudflare,ollama",
+                             _env_file=None))
+    seen = []
+
+    class Rec:
+        def __init__(self, name):
+            self.name = name
+
+        def chat(self, *a, **k):
+            seen.append(self.name)
+            return '{"ok": 1}'
+
+    r.chat_providers["ollama"] = Rec("ollama")
+    r.chat_providers["cloudflare"] = Rec("cloudflare")
+    r.see("q", b"x")
+    r.ask("q")
+    assert seen == ["cloudflare", "ollama"]   # vision tries cloudflare first, chat keeps ollama first
+
+
+def test_fresh_and_cache_off_skip_saved_answers(tmp_path):
+    r = make_router(tmp_path)
+    r.ask("same")
+    r.ask("same")
+    assert r.last_provider == "mock (cache)"
+    r.fresh = True
+    r.ask("same")
+    assert r.last_provider == "mock"
+    r.fresh = False
+    r2 = ModelRouter(Settings(mode="mock", cache_dir=tmp_path, ai_cache=False, _env_file=None))
+    r2.ask("same")
+    assert r2.last_provider == "mock"
+
+
+def test_keyless_voters_are_skipped_and_gemini_gets_no_response_format(tmp_path):
+    r = ModelRouter(Settings(mode="local", cache_dir=tmp_path, _env_file=None,
+                             local_vision_chain="cloudflare,ollama,gemini,groq",
+                             gemini_api_key="k"))
+    assert r.vision_chain() == ["ollama", "gemini"]       # cloudflare and groq have no keys
+    assert r.chat_providers["gemini"].json_format is False

@@ -3,6 +3,16 @@ import PlanCanvas from './PlanCanvas'
 import { api } from './api'
 import { CODES, KIND_LABEL, areaSqft, roomColor } from './mapStyle'
 
+const SOURCE_LABEL = {
+  printed: 'Name read from the plan',
+  'models agree': 'All models agreed',
+  majority: 'Most models agreed',
+  referee: 'Models disagreed; a referee picked',
+  'one model': 'Only one model answered',
+  none: 'No model could name it',
+  you: 'Named by you',
+}
+
 const TOOLS = [
   { id: 'select', label: 'Select', hint: 'Click a room to select it.' },
   { id: 'room', label: 'Paint room', hint: 'Drag to add cells to the selected room.' },
@@ -65,7 +75,8 @@ export default function PlanEditor({ space, onReset }) {
   }
 
   function rename(name) {
-    setRooms((rs) => rs.map((r) => (r.id === selectedId ? { ...r, name } : r)))
+    setRooms((rs) => rs.map((r) => (r.id === selectedId
+      ? { ...r, name, source: 'you', unsure: false, note: '' } : r)))
     setDirty(true)
   }
 
@@ -133,6 +144,13 @@ export default function PlanEditor({ space, onReset }) {
               {KIND_LABEL[selected.kind] || selected.kind} · {totals[selected.id]} sq ft
               {selected.dims_text ? ` · printed ${selected.dims_text}` : ''}
             </p>
+            {selected.source && (
+              <p className={selected.unsure ? 'source unsure' : 'source'}>
+                {SOURCE_LABEL[selected.source] || selected.source}
+                {selected.unsure ? ' · please check' : ''}
+              </p>
+            )}
+            {selected.note && <p className="note">{selected.note}</p>}
           </div>
         )}
         <ul className="room-list">
@@ -140,6 +158,7 @@ export default function PlanEditor({ space, onReset }) {
             <li key={r.id} className={r.id === selectedId ? 'on' : ''} onClick={() => setSelectedId(r.id)}>
               <span className="swatch" style={{ background: roomColor(r.id) }} />
               <span className="room-name">{r.name}</span>
+              {r.unsure && <span className="check" title="The models disagreed. Please check this name.">check</span>}
               <span className="room-area">{totals[r.id]} sq ft</span>
             </li>
           ))}

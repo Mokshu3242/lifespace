@@ -66,7 +66,7 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
     }
 
     // room names at the middle of each room
-    ctx.font = `600 ${Math.max(11, S * 1.6)}px system-ui, sans-serif`
+    ctx.font = `600 ${Math.min(15, Math.max(11, S * 1.6))}px system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     for (const room of rooms) {

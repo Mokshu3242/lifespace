@@ -4,7 +4,7 @@ import re
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -26,14 +26,23 @@ def _path(space_id: str, name: str) -> Path:
 
 
 @router.post("")
-async def create_space(file: UploadFile = File(...)):
+async def create_space(file: UploadFile = File(...),
+                       fresh: bool = Query(False, description="ignore saved AI answers"),
+                       pack: str = Query("home", pattern="^(home|office)$"),
+                       describe: str = Query("", max_length=40)):
+    describe = " ".join(describe.split())
     data = await file.read()
     if len(data) > MAX_BYTES:
         raise HTTPException(413, "Image is over 15 MB")
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(415, "Upload an image (PNG or JPG)")
     try:
-        smap = read_floor_plan(data, get_router())
+        router_ = get_router()
+        router_.fresh = fresh
+        try:
+            smap = read_floor_plan(data, router_, pack, describe)
+        finally:
+            router_.fresh = False
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Vision models are unavailable: {e}")
     except Exception as e:  # bad image file
@@ -43,7 +52,8 @@ async def create_space(file: UploadFile = File(...)):
     folder = STORE / space_id
     folder.mkdir(parents=True)
     (folder / "plan.img").write_bytes(data)
-    out = {"id": space_id, "provider": get_router().last_provider, **smap.to_dict()}
+    out = {"id": space_id, "provider": get_router().last_provider,
+           "pack": pack, "describe": describe, **smap.to_dict()}
     (folder / "map.json").write_text(json.dumps(out))
     return out
 

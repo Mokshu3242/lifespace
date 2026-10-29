@@ -29,6 +29,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+pip install rapidocr-onnxruntime==1.2.3 --no-deps   # OCR, without a second copy of OpenCV
 cp ../.env.example ../.env       # Windows: copy ..\.env.example ..\.env
 pytest -q                        # should say 7 passed
 ```
@@ -82,6 +83,22 @@ CLOUDFLARE_API_TOKEN=...
 ```
 
 Cloudflare also does the free image renders in local mode.
+
+### Optional: more voters for local testing (Gemini, Groq)
+
+More readers with different strengths make the room-name vote more reliable. These are for local
+testing only; production uses Meta's models.
+
+- Gemini: get a free key at https://aistudio.google.com/apikey, then set `GEMINI_API_KEY=` in `.env`
+- Groq: get a free key at https://console.groq.com, then set `GROQ_API_KEY=` in `.env`
+
+Any reader without a key is skipped automatically.
+
+### How rooms get named
+
+1. Printed text on the plan is read with OCR (offline, about 5 seconds). A printed name always wins.
+2. Spaces with no printed name go to every image reader in `LOCAL_VISION_CHAIN`. Each gives a name and a reason.
+3. If they agree, or most do, that's the name. If they split, a text model acts as referee, and the room gets a "check" badge.
 
 ## 6. Check that it works
 

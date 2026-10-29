@@ -22,18 +22,42 @@ WALL, OUTSIDE = -1, -2    # grid codes; rooms are 0..n-1
 UNASSIGNED = -3           # floor not yet given to a room (only during building)
 FIXTURE = -4              # enclosed pockets nobody can walk into: counters, tubs, window strips
 
-READ_PROMPT = """You are reading an architectural floor plan image that is {w} pixels wide and {h} pixels tall.
-List every labeled room or space you can see, including small ones like closets (CL), linen closets (LC), WC and foyer.
-For each one give:
-- "name": the label as written, in title case
-- "dims": the printed size exactly as written (like 14'6" x 20'5"), or "" if none
-- "x", "y": the pixel position of the CENTER of that room's name label on this image
-If a room has no written name, name it by what is in it (Meeting Room, Open Office, Lounge, Reception, Hallway)
-and give the pixel position of the middle of its open floor instead.
-Also give "entrance": {{"x":..., "y":...}} where the main entrance door is, or null.
-Also give "estimated_width_ft": your best estimate of the real width of the whole drawing in feet,
-using things with standard sizes: doors are about 3 ft wide, desks about 5 ft, beds about 5 to 6.5 ft, sofas about 7 ft.
-Reply as JSON: {{"rooms": [{{"name": "...", "dims": "...", "x": 0, "y": 0}}], "entrance": {{"x": 0, "y": 0}}, "estimated_width_ft": 0}}"""
+PACK_ROOMS = {
+    "home": "bedroom, bathroom, kitchen, living room, dining area, hallway, closet, foyer, laundry",
+    "office": "open work area, private office, meeting room, reception, pantry, lounge, phone booth, "
+              "restroom, storage, server room, hallway",
+}
+
+
+def context_line(pack: str = "home", describe: str = "") -> str:
+    """One line that tells the models what kind of space this is."""
+    pack = pack if pack in PACK_ROOMS else "home"
+    what = f"{pack} ({describe})" if describe else pack
+    return (f"This plan is {'an' if pack == 'office' else 'a'} {what}. Use names that fit this kind of space. "
+            f"Typical spaces here: {PACK_ROOMS[pack]}.\n")
+
+
+OVERVIEW_PROMPT = """{context}This is a floor plan. Red rings with numbers 1 to {n} mark its spaces.
+Answer two things:
+- "entrance": the number of the space the main entrance door opens into, or null if you can't tell.
+- "estimated_width_ft": the real width of the whole drawing in feet. Judge it from things with standard sizes:
+  an interior door is about 3 ft wide, an office chair about 2 ft, a desk about 5 ft, a sofa about 7 ft,
+  a bed about 5 to 6.5 ft, a toilet about 2.5 ft long.
+Reply as JSON: {{"entrance": 1, "estimated_width_ft": 40}}"""
+
+NAME_PROMPT = """{context}Each tile is a zoomed-in piece of one floor plan. The number above a tile is that tile's id.
+The red ring marks ONE space; that space is shown clearly and everything around it is faded (a room, hallway, closet, open area or outdoor space).
+For each tile, look only at the space the ring sits in, and give:
+- "text": any room name printed inside that space, copied exactly, or "" if none
+- "dims": a size printed inside that space, copied exactly as written (like 14'6" x 20'5"), or "" if none.
+  Only copy what is actually printed. Never make up a size.
+- "reason": a few words on what you see that decides the name (for example "bed and nightstand")
+- "name": the space's name. Use the printed name if there is one. If not, name it by what is drawn in it:
+  bed = Bedroom, toilet or tub = Bathroom, stove or sink with counters = Kitchen, table with chairs = Dining Area
+  in a home or Meeting Room in an office, sofa = Living Room or Lounge, several desks = Work Area,
+  a single desk = Office, an empty strip that connects rooms = Hallway, a small enclosed space = Closet.
+Tile ids: {ids}.
+Reply as JSON: {{"tiles": [{{"id": 1, "text": "", "dims": "", "reason": "...", "name": "..."}}]}}"""
 
 
 # ---------------------------------------------------------------- data shapes
@@ -43,6 +67,9 @@ class Label:
     dims: str
     x: float
     y: float
+    source: str = ""        # "printed", "models agree", "referee", "one model", "none"
+    note: str = ""          # the reasons behind the name
+    unsure: bool = False    # true when the models disagreed or only one answered
 
 
 @dataclass
@@ -56,6 +83,9 @@ class Room:
     bbox_cells: tuple[int, int, int, int]  # col0, row0, col1, row1
     center_cells: tuple[float, float]
     kind: str  # "room", "closet", "bath", "outdoor", "open"
+    source: str = ""
+    note: str = ""
+    unsure: bool = False
 
 
 @dataclass
@@ -132,39 +162,77 @@ def load_work_image(image_bytes: bytes) -> np.ndarray:
         img = Image.alpha_composite(bg, img)
     img = img.convert("L")
     img.thumbnail((WORK_SIDE, WORK_SIDE))
-    return np.array(img)
+    arr = np.array(img)
+    # a frame drawn around the whole image is not the building's wall
+    m = 3
+    arr[:m, :] = 255
+    arr[-m:, :] = 255
+    arr[:, :m] = 255
+    arr[:, -m:] = 255
+    return arr
 
 
-def find_walls(gray: np.ndarray) -> np.ndarray:
-    """Wall mask: the big connected network of wall pixels.
-    Plans draw walls in black, dark gray or light gray, so try cutoffs from dark to light and use
-    the first one where one connected piece spans most of the plan. Text, door swings and
-    fixtures are small separate pieces, so they drop out."""
+def find_walls(gray: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Returns (walls, furniture) masks.
+
+    Walls: the big connected network of wall pixels. Plans draw walls in black, dark gray or
+    light gray, so try cutoffs from dark to light and use the first one where one connected
+    piece spans most of the plan.
+    Furniture: the smaller pieces that are closed outlines (tables, sofas, tubs, counters),
+    filled in so people walk around them. Text, door swings and dimension marks are open
+    strokes or tiny, so they drop out."""
     h, w = gray.shape
-    big_side = 0.15 * max(h, w)
+    side = max(h, w)
+    # Walls drawn as two lines with a light fill between them only come out solid at a light
+    # cutoff, so use the LIGHTEST cutoff where one piece spans the plan but the floor stays clear.
+    chosen = None
     for cutoff in (110, 150, 190, 215, 235):
         dark = (gray < cutoff).astype(np.uint8)
-        n, lab, stats, _ = cv2.connectedComponentsWithStats(dark, 8)
-        if n < 2:
+        n_c, lab_c, st_c, _ = cv2.connectedComponentsWithStats(dark, 8)
+        if n_c < 2:
             continue
-        top = 1 + int(np.argmax(stats[1:, 4]))
-        _, _, bw, bh, _ = stats[top]
-        if bw >= 0.5 * w and bh >= 0.5 * h:
+        top = 1 + int(np.argmax(st_c[1:, 4]))
+        _, _, bw, bh, area = st_c[top]
+        spans = bw >= 0.5 * w and bh >= 0.5 * h
+        if spans and area <= 0.35 * w * h:
+            chosen = (n_c, lab_c, st_c)
+        elif chosen is not None:
             break
-    keep = np.zeros(n, bool)
+    if chosen is None:  # fall back to the darkest cutoff
+        dark = (gray < 110).astype(np.uint8)
+        chosen = cv2.connectedComponentsWithStats(dark, 8)[:3]
+    n, lab, stats = chosen
+    walls = np.zeros((h, w), bool)
+    furniture = np.zeros((h, w), bool)
+    top = 1 + int(np.argmax(stats[1:, 4]))
     for i in range(1, n):
-        if max(stats[i, 2], stats[i, 3]) >= big_side:
-            keep[i] = True
-    walls = keep[lab].astype(np.uint8)
+        x, y, bw, bh, area = stats[i]
+        big = max(bw, bh)
+        # walls are long and thin; a big but compact shape (table with chairs) is furniture
+        if i == top or (big >= 0.15 * side and area < 0.25 * bw * bh and min(bw, bh) < 0.05 * side):
+            walls |= lab == i
+        elif big >= 0.03 * side:
+            # a closed outline encloses empty space; fill it and see how much it grew
+            piece = (lab[y:y + bh, x:x + bw] == i).astype(np.uint8)
+            contours, _ = cv2.findContours(piece, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            filled = np.zeros_like(piece)
+            cv2.drawContours(filled, contours, -1, 1, -1)
+            if filled.sum() >= 1.5 * piece.sum() or piece.sum() >= 0.5 * bw * bh:
+                furniture[y:y + bh, x:x + bw] |= filled.astype(bool)
     # close hairline gaps in the wall drawing
-    walls = cv2.morphologyEx(walls, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
-    return walls.astype(bool)
+    walls = cv2.morphologyEx(walls.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)).astype(bool)
+    return walls, furniture & ~walls
 
 
 def seal(walls: np.ndarray, k: int) -> np.ndarray:
     """Close gaps up to k px wide (doors, windows) so spaces become closed areas."""
-    return cv2.morphologyEx(walls.astype(np.uint8), cv2.MORPH_CLOSE,
-                            cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))).astype(bool)
+    # pad first: near the image edge, closing would grow walls out to the border and
+    # seal the margin around the building shut, making it look like indoors
+    p = k + 2
+    padded = cv2.copyMakeBorder(walls.astype(np.uint8), p, p, p, p, cv2.BORDER_CONSTANT, value=0)
+    closed = cv2.morphologyEx(padded, cv2.MORPH_CLOSE,
+                              cv2.getStructuringElement(cv2.MORPH_RECT, (k, k)))
+    return closed[p:-p, p:-p].astype(bool)
 
 
 def outside_mask(walls: np.ndarray, k: int) -> np.ndarray:
@@ -185,7 +253,11 @@ def choose_seal_size(walls: np.ndarray, labels: list[Label]) -> int:
     sizes = sorted({max(9, int(f * side) | 1) for f in (0.03, 0.04, 0.05, 0.065, 0.08, 0.1, 0.12)})
     indoor = [lb for lb in labels if kind_of(lb.name) != "outdoor"]
     if not indoor:
-        return max(9, int(0.05 * side) | 1)
+        # No labels yet: outside leaking through a door makes the inside area collapse.
+        # Take the smallest size whose inside area is close to the best one.
+        areas = [(k, int((~walls & ~outside_mask(walls, k)).sum())) for k in sizes]
+        top = max(a for _, a in areas)
+        return next(k for k, a in areas if a >= 0.95 * top)
     best_k, best = sizes[0], -1
     for k in sizes:
         out = outside_mask(walls, k)
@@ -222,10 +294,11 @@ def _grow(grid: np.ndarray, only: set[int] | None, steps: int | None) -> None:
 # ---------------------------------------------------------------- main
 def build_space_map(gray: np.ndarray, labels: list[Label],
                     entrance_px: tuple[float, float] | None,
-                    width_ft_hint: float | None = None) -> SpaceMap:
+                    width_ft_hint: float | None = None,
+                    entrance_label: int | None = None) -> SpaceMap:
     h, w = gray.shape
     warnings: list[str] = []
-    walls = find_walls(gray)
+    walls, furniture = find_walls(gray)
     k = choose_seal_size(walls, labels)
     outside = outside_mask(walls, k)
     inside_free = ~walls & ~outside
@@ -237,8 +310,10 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         main_area = int(pk_stats[1:, 4].max())
         small = [i for i in range(1, n_pk) if pk_stats[i, 4] < 0.03 * main_area]
         blocked = np.isin(pk, small)
-        walls = walls | blocked
-        inside_free = inside_free & ~blocked
+    else:
+        blocked = np.zeros_like(walls)
+    blocked = (blocked | furniture) & inside_free
+    inside_free = inside_free & ~blocked
 
     # Room cores: with door gaps sealed, each room's core is closed off from its neighbours.
     sealed = seal(walls, k)
@@ -267,6 +342,7 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
     room_px = np.full((h, w), UNASSIGNED, np.int32)
     room_px[walls] = WALL
     room_px[outside] = OUTSIDE
+    room_px[blocked] = FIXTURE
     point_seeds: list[tuple[int, int, int]] = []
     by_core: dict[int, list[tuple[int, int, int]]] = {}
     for idx, (lb, x, y) in enumerate(usable):
@@ -297,14 +373,34 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         a, b = dims
         # the plan doesn't say which printed number is width; pick the pairing that fits the box shape
         pair = (a, b) if abs(bw / bh - a / b) <= abs(bw / bh - b / a) else (b, a)
-        estimates += [bw / pair[0], bh / pair[1]]
-    if len(estimates) >= 2:
-        px_per_ft = float(np.median(estimates))
-        scale_source = f"median of {len(estimates)} measurements from printed room sizes"
+        estimates.append((bw / pair[0] + bh / pair[1]) / 2)   # one estimate per room
+    # A misread or made-up size gives a scale that disagrees with the rest. Keep only rooms
+    # within 25% of the middle value, and trust the result only if 2+ rooms agree.
+    agreeing = []
+    if estimates:
+        mid = float(np.median(estimates))
+        agreeing = [e for e in estimates if abs(e - mid) <= 0.25 * mid]
+    if len(agreeing) >= 2:
+        px_per_ft = float(np.median(agreeing))
+        scale_source = f"printed sizes: {len(agreeing)} of {len(estimates)} rooms agree"
     elif width_ft_hint and 8 <= width_ft_hint <= 400:
         px_per_ft = w / width_ft_hint
         scale_source = f"estimated by the vision model from doors and furniture ({width_ft_hint:.0f} ft wide)"
         warnings.append("No printed sizes on the plan. Scale was estimated from doors and furniture; check it.")
+        # Sanity check: a typical room is 60 to 350 sq ft. If the estimate makes the middle room
+        # far outside that, the estimate is off; rescale so the middle room is 150 sq ft.
+        by_name: dict[str, int] = {}
+        for i, (lb, _, _) in enumerate(usable):
+            if kind_of(lb.name) in ("room", "open"):
+                key = lb.name.strip().lower()
+                by_name[key] = by_name.get(key, 0) + int((room_px == i).sum())
+        core_px = [a for a in by_name.values() if a > 0]
+        if core_px:
+            mid_sqft = float(np.median(core_px)) / px_per_ft ** 2
+            if not 60 <= mid_sqft <= 350:
+                px_per_ft = (float(np.median(core_px)) / 150) ** 0.5
+                scale_source = (f"room-size check: the estimate ({width_ft_hint:.0f} ft wide) gave rooms of "
+                                f"{mid_sqft:.0f} sq ft, so scale was set to make a typical room 150 sq ft")
     else:
         px_per_ft = w / 60.0
         scale_source = "guess: no printed sizes found, assumed plan is 60 ft wide"
@@ -350,20 +446,33 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
     _grow(grid, only=set(seeds.values()), steps=head_start)
     _grow(grid, only=None, steps=None)
 
+    # ---- one space can carry several marks; if the model named them the same and they're near, join them
+    names = [lb.name.strip().lower() for lb, _, _ in usable]
+    for i in range(len(usable)):
+        for j in range(i + 1, len(usable)):
+            if names[i] != names[j] or not (grid == i).any() or not (grid == j).any():
+                continue
+            # "near" = within about a foot, so a table that cuts a room in two doesn't split it
+            a = cv2.dilate((grid == i).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+            b = grid == j
+            if (a & b).any():
+                grid[b] = i
+
     # ---- room summaries
     rooms: list[Room] = []
     sqft_per_cell = (CELL_IN / 12) ** 2
     for idx, (lb, _, _) in enumerate(usable):
         rr, cc = np.nonzero(grid == idx)
         if len(rr) == 0:
-            warnings.append(f"'{lb.name}' ended up with no floor cells.")
+            if not any(names[j] == names[idx] for j in range(idx)):
+                warnings.append(f"'{lb.name}' ended up with no floor cells.")
             continue
         rooms.append(Room(
             id=idx, name=lb.name, dims_text=lb.dims, dims_ft=parse_dims(lb.dims),
             area_sqft=round(len(rr) * sqft_per_cell, 1), cells=int(len(rr)),
             bbox_cells=(int(cc.min()), int(rr.min()), int(cc.max()), int(rr.max())),
             center_cells=(round(float(cc.mean()), 1), round(float(rr.mean()), 1)),
-            kind=kind_of(lb.name),
+            kind=kind_of(lb.name), source=lb.source, note=lb.note, unsure=lb.unsure,
         ))
     # whatever no room could reach is closed off: counters, tubs, window strips
     grid[grid == UNASSIGNED] = FIXTURE
@@ -371,6 +480,15 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
     entrance = None
     if entrance_px:
         entrance = (int(entrance_px[0] / cell_px), int(entrance_px[1] / cell_px))
+    elif entrance_label is not None and (grid == entrance_label).any():
+        # the room's cell closest to outside is where the front door is
+        rr, cc = np.nonzero(grid == entrance_label)
+        orr, occ = np.nonzero(grid == OUTSIDE)
+        if len(orr):
+            d = np.min((rr[:, None] - orr[None]) ** 2 + (cc[:, None] - occ[None]) ** 2, axis=1) \
+                if len(rr) * len(orr) < 4_000_000 else (rr - rr.mean()) ** 2
+            j = int(np.argmin(d))
+            entrance = (int(cc[j]), int(rr[j]))
 
     return SpaceMap(cols=cols, rows=rows, cell_in=CELL_IN, px_per_ft=px_per_ft,
                     scale_source=scale_source, grid=grid.tolist(), rooms=rooms,
@@ -401,18 +519,184 @@ def labels_from_ai(ai: dict, w: int, h: int) -> tuple[list[Label], tuple[float, 
     return labels, entrance
 
 
-def read_floor_plan(image_bytes: bytes, router) -> SpaceMap:
-    gray = load_work_image(image_bytes)
+def find_marks(gray: np.ndarray, with_floor: bool = False):
+    """Places one point inside every space, using code only.
+    Rooms: the sealed cores. Small spaces (closets) vanish when sealed, so wide-enough leftover
+    pockets get a point too. Each point is the spot farthest from any wall, so it sits well inside."""
+    walls, furniture = find_walls(gray)
+    k = choose_seal_size(walls, [])
+    # furniture only matters for walking; for finding spaces, look at the bare floor
+    inside = ~walls & ~outside_mask(walls, k)
+    # closed pockets (tables, tubs) are furniture
+    n, lab, st, _ = cv2.connectedComponentsWithStats(inside.astype(np.uint8), 4)
+    if n > 2:
+        main = int(st[1:, 4].max())
+        inside &= ~np.isin(lab, [i for i in range(1, n) if st[i, 4] < 0.03 * main])
+    total = max(1, int(inside.sum()))
+    sealed = seal(walls, k)
+    cores = inside & ~sealed
+    marks: list[tuple[int, int]] = []
+
+    def add_points(mask: np.ndarray, min_area: float, min_depth: float, many: bool) -> None:
+        n, lab, st, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8), 4)
+        for i in range(1, n):
+            if st[i, 4] < min_area:
+                continue
+            comp = (lab == i).astype(np.uint8)
+            first = None
+            for _ in range(5 if many else 1):
+                dist = cv2.distanceTransform(comp, cv2.DIST_L2, 5)
+                depth = float(dist.max())
+                if depth < max(min_depth, 1) or (first and depth < 0.45 * first):
+                    break
+                first = first or depth
+                y, x = np.unravel_index(int(np.argmax(dist)), dist.shape)
+                marks.append((int(x), int(y)))
+                # open-plan areas (living + dining + kitchen) hold several spaces:
+                # blank out this one and look for the next deep spot
+                cv2.circle(comp, (int(x), int(y)), int(1.3 * depth), 0, -1)
+
+    add_points(cores, 0.004 * total, 0.3 * k, many=True)
+    leftover = inside & ~cv2.dilate(cores.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
+    add_points(leftover, 0.003 * total, 0.25 * k, many=False)
+
+    # gaps between chairs and desks can look like tiny spaces; keep one mark per neighbourhood
+    kept: list[tuple[int, int]] = []
+    for x, y in marks:
+        if all((x - a) ** 2 + (y - b) ** 2 >= (0.8 * k) ** 2 for a, b in kept):
+            kept.append((x, y))
+    marks[:] = kept
+    marks.sort(key=lambda p: (p[1] // max(1, gray.shape[0] // 6), p[0]))  # read order: rows, then left to right
+    return (marks, inside) if with_floor else marks
+
+
+def mark_regions(floor: np.ndarray, marks: list[tuple[int, int]], step: int = 3) -> np.ndarray:
+    """Which mark owns each floor pixel, by walking distance (never through walls).
+    Done on a 1/step grid for speed, then scaled back up. -1 = no owner."""
+    h, w = floor.shape
+    small = cv2.resize(floor.astype(np.uint8), (w // step, h // step), interpolation=cv2.INTER_NEAREST)
+    sh, sw = small.shape
+    owner = np.full((sh, sw), -1, np.int32)
+    frontier = []
+    for i, (x, y) in enumerate(marks):
+        r, c = min(sh - 1, y // step), min(sw - 1, x // step)
+        owner[r, c] = i
+        frontier.append((r, c))
+    while frontier:
+        nxt = []
+        for r, c in frontier:
+            v = owner[r, c]
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                rr, cc = r + dr, c + dc
+                if 0 <= rr < sh and 0 <= cc < sw and owner[rr, cc] == -1 and small[rr, cc]:
+                    owner[rr, cc] = v
+                    nxt.append((rr, cc))
+        frontier = nxt
+    return cv2.resize(owner, (w, h), interpolation=cv2.INTER_NEAREST)
+
+
+def _ring(img: np.ndarray, x: int, y: int, r: int, label: str | None) -> None:
+    """A hollow red ring, so printed room names under it stay readable."""
+    cv2.circle(img, (x, y), r, (255, 255, 255), 5)
+    cv2.circle(img, (x, y), r, (40, 40, 220), 3)
+    if label:
+        scale = max(0.45, r / 26)
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, scale, 2)
+        tx, ty = x + r - 2, y - r + 2
+        cv2.rectangle(img, (tx - 3, ty - th - 4), (tx + tw + 3, ty + 4), (40, 40, 220), -1)
+        cv2.putText(img, label, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), 2)
+
+
+def draw_marks(gray: np.ndarray, marks: list[tuple[int, int]]) -> bytes:
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    r = max(10, int(0.014 * max(gray.shape)))
+    for i, (x, y) in enumerate(marks, start=1):
+        _ring(img, x, y, r, str(i))
+    ok, buf = cv2.imencode(".png", img)
+    return buf.tobytes()
+
+
+TILE = 400          # px per tile on a naming sheet
+TILES_PER_SHEET = 6  # 3 x 2; small models stay accurate with a handful at a time
+
+
+def draw_sheets(gray: np.ndarray, marks: list[tuple[int, int]],
+                regions: np.ndarray | None = None,
+                only: list[int] | None = None) -> list[tuple[bytes, list[int]]]:
+    """Cut a zoomed view of each space and lay them out on sheets, numbered.
+    Each tile is cropped to its own space and everything outside it is faded, so the model reads
+    THIS room's printed name and furniture, not the bold label of the room next door."""
     h, w = gray.shape
-    png = io.BytesIO()
-    Image.fromarray(gray).save(png, format="PNG")
-    ai = router.see(READ_PROMPT.format(w=w, h=h), png.getvalue())
-    labels, entrance = labels_from_ai(ai, w, h)
+    color = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    sheets = []
+    numbers = only if only is not None else list(range(1, len(marks) + 1))
+    for start in range(0, len(numbers), TILES_PER_SHEET):
+        ids = numbers[start:start + TILES_PER_SHEET]
+        cols = 3
+        rows = (len(ids) + cols - 1) // cols
+        cap = 34
+        sheet = np.full((rows * (TILE + cap), cols * TILE, 3), 255, np.uint8)
+        for k, n in enumerate(ids):
+            x, y = marks[n - 1]
+            img = color
+            if regions is not None and (regions == n - 1).any():
+                own = cv2.dilate((regions == n - 1).astype(np.uint8),
+                                 np.ones((7, 7), np.uint8)).astype(bool)
+                ys, xs = np.nonzero(own)
+                x0, x1, y0, y1 = int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+                faded = (color * 0.18 + 255 * 0.82).astype(np.uint8)
+                img = np.where(own[:, :, None], color, faded)
+            else:
+                x0, x1, y0, y1 = x - 60, x + 60, y - 60, y + 60
+            # square window around the space, with a margin, never smaller than a closet needs
+            half = max(x1 - x0, y1 - y0) // 2 + max(12, int(0.12 * max(x1 - x0, y1 - y0)))
+            half = max(half, int(0.08 * max(h, w)))
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            X0, Y0, X1, Y1 = cx - half, cy - half, cx + half, cy + half
+            crop = img[max(0, Y0):min(h, Y1), max(0, X0):min(w, X1)]
+            pad = cv2.copyMakeBorder(crop, max(0, -Y0), max(0, Y1 - h), max(0, -X0), max(0, X1 - w),
+                                     cv2.BORDER_CONSTANT, value=(255, 255, 255))
+            f = TILE / (2 * half)
+            tile = cv2.resize(pad, (TILE, TILE), interpolation=cv2.INTER_AREA if f < 1 else cv2.INTER_CUBIC)
+            _ring(tile, int((x - X0) * f), int((y - Y0) * f), 18, None)
+            r, c = divmod(k, cols)
+            oy, ox = r * (TILE + cap), c * TILE
+            sheet[oy + cap:oy + cap + TILE, ox:ox + TILE] = tile
+            cv2.rectangle(sheet, (ox, oy + cap), (ox + TILE - 1, oy + cap + TILE - 1), (160, 160, 160), 1)
+            cv2.putText(sheet, str(n), (ox + 8, oy + 26), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (40, 40, 220), 2)
+        ok, buf = cv2.imencode(".png", sheet)
+        sheets.append((buf.tobytes(), ids))
+    return sheets
+
+
+def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: str = "") -> SpaceMap:
+    context = context_line(pack, describe)
+    gray = load_work_image(image_bytes)
+    marks, floor = find_marks(gray, with_floor=True)
+    if not marks:
+        smap = build_space_map(gray, [], None)
+        smap.warnings.insert(0, "Couldn't find any closed spaces. Is this a top-down floor plan?")
+        return smap
+
+    # 1) names and printed sizes: OCR first, then two models, then a referee if they disagree
+    from app.space.naming import name_spaces
+    regions = mark_regions(floor, marks)
+    labels = name_spaces(gray, marks, regions, router, context)
+
+    # 2) entrance and overall width: one look at the whole plan
+    overview = router.see(OVERVIEW_PROMPT.format(context=context, n=len(marks)), draw_marks(gray, marks))
     try:
-        width_hint = float(ai.get("estimated_width_ft") or 0) or None
+        ent = int(overview.get("entrance")) - 1
+        entrance_idx = ent if 0 <= ent < len(marks) else None
+    except (TypeError, ValueError):
+        entrance_idx = None
+    try:
+        width_hint = float(overview.get("estimated_width_ft") or 0) or None
     except (TypeError, ValueError):
         width_hint = None
-    smap = build_space_map(gray, labels, entrance, width_hint)
-    if not labels:
-        smap.warnings.insert(0, "The vision model found no room labels. Name the rooms by hand.")
+
+    smap = build_space_map(gray, labels, None, width_hint, entrance_label=entrance_idx)
+    unnamed = sum(1 for lb in labels if lb.name.startswith("Space "))
+    if unnamed:
+        smap.warnings.insert(0, f"{unnamed} spaces have no name yet. Select them and type one.")
     return smap

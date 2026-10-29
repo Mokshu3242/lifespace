@@ -16,13 +16,19 @@ class ProviderError(Exception):
 
 class OpenAICompatProvider:
     def __init__(self, name: str, base_url: str, api_key: str, chat_model: str,
-                 vision_model: str | None, timeout: float):
+                 vision_model: str | None, timeout: float, json_format: bool = True):
+        self.json_format = json_format   # some providers reject response_format; the prompt asks for JSON anyway
         self.name = name
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.chat_model = chat_model
         self.vision_model = vision_model or chat_model
         self.timeout = timeout
+
+    @property
+    def ready(self) -> bool:
+        """Has the key it needs (Ollama runs locally and needs none)."""
+        return bool(self.api_key) or self.name == "ollama"
 
     def chat(self, messages: list[dict], json_mode: bool = False,
              vision: bool = False, temperature: float = 0.3) -> str:
@@ -31,7 +37,7 @@ class OpenAICompatProvider:
             "messages": messages,
             "temperature": temperature,
         }
-        if json_mode:
+        if json_mode and self.json_format:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
         try:
@@ -91,6 +97,7 @@ class MockProvider:
     """Canned answers, no network. Lets tests and the UI run with zero setup."""
 
     name = "mock"
+    ready = True
 
     def chat(self, messages: list[dict], json_mode: bool = False,
              vision: bool = False, temperature: float = 0.3) -> str:
@@ -116,6 +123,11 @@ def build_chat_providers(s: Settings) -> dict[str, object]:
         "cloudflare": OpenAICompatProvider("cloudflare", cf_base, s.cloudflare_api_token,
                                            s.cloudflare_chat_model, s.cloudflare_vision_model,
                                            s.request_timeout),
+        "groq": OpenAICompatProvider("groq", s.groq_base_url, s.groq_api_key,
+                                     s.groq_model, s.groq_model, s.request_timeout),
+        "gemini": OpenAICompatProvider("gemini", s.gemini_base_url, s.gemini_api_key,
+                                       s.gemini_model, s.gemini_model, s.request_timeout,
+                                       json_format=False),
         "ollama": OpenAICompatProvider("ollama", f"{s.ollama_url}/v1", "",
                                        s.ollama_chat_model, s.ollama_vision_model,
                                        s.request_timeout),

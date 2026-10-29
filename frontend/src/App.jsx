@@ -3,6 +3,12 @@ import PlanEditor from './PlanEditor'
 import { api } from './api'
 import './App.css'
 
+const PACKS = [
+  { id: 'home', label: 'Home' },
+  { id: 'office', label: 'Office' },
+  { id: 'street', label: 'Street', soon: true },
+]
+
 export default function App() {
   const [health, setHealth] = useState(null)
   const [backendDown, setBackendDown] = useState(false)
@@ -10,6 +16,9 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [fresh, setFresh] = useState(false)
+  const [pack, setPack] = useState('home')
+  const [describe, setDescribe] = useState('')
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => setBackendDown(true))
@@ -22,7 +31,7 @@ export default function App() {
     setBusy(true)
     setError(null)
     try {
-      const s = await api.uploadPlan(file)
+      const s = await api.uploadPlan(file, { fresh, pack, describe })
       setSpace(s)
       history.replaceState(null, '', `?space=${s.id}`)
     } catch (e) {
@@ -60,15 +69,31 @@ export default function App() {
           {busy ? (
             <>
               <div className="spinner" />
-              <p>Reading your plan… the vision model takes 20 to 60 seconds locally.</p>
+              <p>Reading your plan… the vision model looks at each space up close, so this takes 1 to 2 minutes locally.</p>
             </>
           ) : (
             <>
               <h2>Upload a floor plan</h2>
+              <div className="packs" role="radiogroup" aria-label="Space type">
+                {PACKS.map((p) => (
+                  <button key={p.id} type="button" disabled={p.soon}
+                    className={pack === p.id ? 'on' : ''} aria-pressed={pack === p.id}
+                    onClick={() => setPack(p.id)}>
+                    {p.label}{p.soon && <small> soon</small>}
+                  </button>
+                ))}
+              </div>
+              <input className="describe" maxLength={40} value={describe}
+                onChange={(e) => setDescribe(e.target.value)}
+                placeholder={pack === 'office' ? 'Describe it (optional): tech startup office' : 'Describe it (optional): 2-bed apartment'} />
               <p>Drop a PNG or JPG here, or choose a file. Plans with printed room sizes work best.</p>
               <label className="file-btn">
                 Choose file
                 <input type="file" accept="image/png,image/jpeg" onChange={(e) => upload(e.target.files[0])} hidden />
+              </label>
+              <label className="fresh">
+                <input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} />
+                Fresh read (ignore saved AI answers)
               </label>
             </>
           )}

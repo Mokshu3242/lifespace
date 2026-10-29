@@ -72,3 +72,27 @@ def test_labels_from_ai_handles_normalized_coords():
     assert len(labels) == 1
     assert labels[0].x == 450 and labels[0].y == 150
     assert ent == (50, 270)
+
+
+def test_read_floor_plan_end_to_end_with_fake_models(monkeypatch):
+    """Whole flow: marks -> OCR (none here) -> sheets -> every model votes -> map."""
+    from app.space import ocr
+    from app.space.reader import read_floor_plan
+    import cv2
+
+    monkeypatch.setattr(ocr, "read_texts", lambda gray: [])
+
+    class FakeRouter:
+        def see_each(self, prompt, png, *a, **k):
+            ids = [int(t) for t in prompt.split("Tile ids:")[1].split(".")[0].split(",")]
+            tiles = [{"id": i, "name": "Room", "reason": "empty floor", "dims": ""} for i in ids]
+            return {"a": {"tiles": tiles}, "b": {"tiles": tiles}}
+
+        def see(self, prompt, png, *a, **k):
+            return {"entrance": 1, "estimated_width_ft": 26}
+
+    ok, buf = cv2.imencode(".png", draw_plan())
+    m = read_floor_plan(buf.tobytes(), FakeRouter())
+    assert m.rooms and all(r.name == "Room" and r.source == "models agree" for r in m.rooms)
+    assert m.entrance is not None
+    assert abs(m.px_per_ft - PX_PER_FT) / PX_PER_FT < 0.35   # from the width estimate

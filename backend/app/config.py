@@ -31,12 +31,26 @@ class Settings(BaseSettings):
     cloudflare_vision_model: str = "@cf/meta/llama-4-scout-17b-16e-instruct"
     cloudflare_image_model: str = "@cf/black-forest-labs/flux-1-schnell"
 
+    # Groq (free tier, fast; local voter only. It retired Llama 4, so its image model is Qwen)
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "qwen/qwen3.8-27b"   # Groq retired Llama 4 in July 2026
+
+    # Google Gemini (free tier, local voter only; production stays on Meta models)
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
+    gemini_model: str = "gemini-3.8-flash"
+
     # Ollama on your laptop (free, offline)
     ollama_url: str = "http://localhost:11434"
     ollama_chat_model: str = "llama3.2"
     ollama_vision_model: str = "qwen2.5vl:7b"
 
-    # Cache every AI call so repeat runs are free
+    # all of them answer when naming rooms (they vote); the first one is preferred for single answers
+    local_vision_chain: str = "cloudflare,ollama,gemini,groq"
+
+    # Cache every AI call so repeat runs are free. AI_CACHE=false always asks the models again.
+    ai_cache: bool = True
     cache_dir: Path = ROOT / ".cache" / "ai"
     request_timeout: float = 120.0
 

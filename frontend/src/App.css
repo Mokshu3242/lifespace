@@ -65,3 +65,21 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
 .warn { background: var(--warn-bg); border-radius: 8px; padding: 4px 10px; font-size: 0.85rem; margin: 8px 0; }
 .warn p { margin: 6px 0; }
 .side-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.source { font-size: 0.8rem; margin: 4px 0 0; color: var(--accent); }
+.source.unsure { color: var(--bad); }
+.note { font-size: 0.78rem; color: var(--muted); margin: 4px 0 0; line-height: 1.35; }
+.check {
+  font-size: 0.7rem; padding: 1px 6px; border-radius: 999px; flex: none;
+  background: var(--warn-bg); color: var(--ink); border: 1px solid var(--line);
+}
+.fresh { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px;
+  font-size: 0.85rem; color: var(--muted); cursor: pointer; }
+
+.packs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; margin: 4px 0 12px; }
+.packs button { border: none; background: none; padding: 6px 16px; border-radius: 7px; color: var(--ink); cursor: pointer; }
+.packs button.on { background: var(--accent); color: #fff; }
+.packs button:disabled { color: var(--muted); cursor: default; }
+.packs small { font-size: 0.7rem; }
+.describe { display: block; width: min(340px, 100%); margin: 0 auto 20px; padding: 8px 12px;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }

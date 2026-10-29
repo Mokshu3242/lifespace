@@ -6,10 +6,12 @@ async function handle(r) {
 
 export const api = {
   health: () => fetch('/api/health').then(handle),
-  uploadPlan: (file) => {
+  uploadPlan: (file, { fresh = false, pack = 'home', describe = '' } = {}) => {
     const body = new FormData()
     body.append('file', file)
-    return fetch('/api/spaces', { method: 'POST', body }).then(handle)
+    const q = new URLSearchParams({ pack, describe: describe.trim() })
+    if (fresh) q.set('fresh', 'true')
+    return fetch(`/api/spaces?${q}`, { method: 'POST', body }).then(handle)
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
   saveSpace: (id, { grid, rooms, entrance }) =>
