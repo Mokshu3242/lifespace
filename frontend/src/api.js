@@ -14,11 +14,12 @@ export const api = {
     return fetch(`/api/spaces?${q}`, { method: 'POST', body }).then(handle)
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
-  saveSpace: (id, { grid, rooms, entrance }) =>
+  catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
+  saveSpace: (id, { grid, rooms, entrance, items }) =>
     fetch(`/api/spaces/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grid, rooms, entrance }),
+      body: JSON.stringify({ grid, rooms, entrance, items }),
     }).then(handle),
   imageUrl: (id) => `/api/spaces/${id}/image`,
 }

@@ -78,6 +78,7 @@ class MapEdit(BaseModel):
     grid: list[list[int]]
     rooms: list[dict]
     entrance: list[int] | None = None
+    items: list[dict] | None = None
 
 
 @router.put("/{space_id}")
@@ -90,5 +91,7 @@ def save_space(space_id: str, edit: MapEdit):
     if len(edit.grid) != current["rows"] or any(len(r) != current["cols"] for r in edit.grid):
         raise HTTPException(400, "Grid size changed; that isn't allowed")
     current.update(grid=edit.grid, rooms=edit.rooms, entrance=edit.entrance, edited=True)
+    if edit.items is not None:
+        current["items"] = edit.items
     p.write_text(json.dumps(current))
     return current

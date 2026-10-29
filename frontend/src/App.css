@@ -83,3 +83,10 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
 .packs small { font-size: 0.7rem; }
 .describe { display: block; width: min(340px, 100%); margin: 0 auto 20px; padding: 8px 12px;
   border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+
+.tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
+.tabs button { flex: 1; border: none; background: none; padding: 6px 8px; border-radius: 7px; color: var(--ink); cursor: pointer; }
+.tabs button.on { background: var(--accent); color: #fff; }
+.room-edit select { width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }

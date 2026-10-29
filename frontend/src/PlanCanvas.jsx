@@ -6,7 +6,7 @@ import { CODES, roomColor } from './mapStyle'
  * Reports cell clicks/drags through onPaint(row, col, isFirst).
  */
 export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, showPlan,
-  planImage, onPaint }) {
+  planImage, onPaint, items = [], selectedItem = null }) {
   const ref = useRef(null)
   const dragging = useRef(false)
   const last = useRef(null)
@@ -80,6 +80,26 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.fillText(room.name, (cx + 0.5) * S, (cy + 0.5) * S)
     }
 
+    // furniture already on the plan: dashed boxes with short names
+    ctx.font = `600 ${Math.min(12, Math.max(9, S * 1.2))}px system-ui, sans-serif`
+    for (const it of items) {
+      const x = (it.x - it.w / 2) * S, y = (it.y - it.d / 2) * S
+      const on = it.id === selectedItem
+      ctx.setLineDash(on ? [] : [4, 3])
+      ctx.lineWidth = on ? 3 : 1.5
+      ctx.strokeStyle = on ? '#1f7a5a' : it.unsure ? '#b7791f' : '#2f5d8a'
+      ctx.strokeRect(x, y, it.w * S, it.d * S)
+      ctx.setLineDash([])
+      if (on || it.w * S > 40) {
+        const label = shortName(it.name)
+        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+        ctx.strokeText(label, it.x * S, it.y * S)
+        ctx.fillStyle = '#1d3b5a'
+        ctx.fillText(label, it.x * S, it.y * S)
+      }
+    }
+
     if (entrance) {
       const [ec, er] = entrance
       ctx.fillStyle = '#d64545'
@@ -87,7 +107,7 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.arc((ec + 0.5) * S, (er + 0.5) * S, Math.max(5, S), 0, Math.PI * 2)
       ctx.fill()
     }
-  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S])
+  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem])
 
   function cellAt(e) {
     const rect = ref.current.getBoundingClientRect()
@@ -120,6 +140,10 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       onPointerCancel={() => { dragging.current = false }}
     />
   )
+}
+
+function shortName(name) {
+  return name.replace(/ with (\d+) chairs/, ' +$1').replace(/ \(LED\)/, '')
 }
 
 function cellsBetween([r0, c0], [r1, c1]) {

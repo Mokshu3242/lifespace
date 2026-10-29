@@ -100,6 +100,7 @@ class SpaceMap:
     entrance: tuple[int, int] | None
     image_size: tuple[int, int]          # (w, h) of the working image
     warnings: list[str] = field(default_factory=list)
+    items: list[dict] = field(default_factory=list)    # furniture already on the plan, matched to the catalog
 
     def to_dict(self) -> dict:
         return {
@@ -113,6 +114,7 @@ class SpaceMap:
             "image_size": self.image_size,
             "codes": {"wall": WALL, "outside": OUTSIDE, "fixture": FIXTURE},
             "warnings": self.warnings,
+            "items": self.items,
         }
 
 
@@ -387,8 +389,8 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         px_per_ft = w / width_ft_hint
         scale_source = f"estimated by the vision model from doors and furniture ({width_ft_hint:.0f} ft wide)"
         warnings.append("No printed sizes on the plan. Scale was estimated from doors and furniture; check it.")
-        # Sanity check: a typical room is 60 to 350 sq ft. If the estimate makes the middle room
-        # far outside that, the estimate is off; rescale so the middle room is 150 sq ft.
+        # Sanity check: only catch an estimate that is clearly broken. Offices split into many
+        # small spaces (booths, desk pods), so a 50 sq ft middle room is normal there.
         by_name: dict[str, int] = {}
         for i, (lb, _, _) in enumerate(usable):
             if kind_of(lb.name) in ("room", "open"):
@@ -397,7 +399,7 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         core_px = [a for a in by_name.values() if a > 0]
         if core_px:
             mid_sqft = float(np.median(core_px)) / px_per_ft ** 2
-            if not 60 <= mid_sqft <= 350:
+            if not 25 <= mid_sqft <= 600:
                 px_per_ft = (float(np.median(core_px)) / 150) ** 0.5
                 scale_source = (f"room-size check: the estimate ({width_ft_hint:.0f} ft wide) gave rooms of "
                                 f"{mid_sqft:.0f} sq ft, so scale was set to make a typical room 150 sq ft")
@@ -696,6 +698,11 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
         width_hint = None
 
     smap = build_space_map(gray, labels, None, width_hint, entrance_label=entrance_idx)
+    # 3) furniture already drawn on the plan, matched to real catalog items
+    from app.space.items import detect_items, to_dicts
+    smap.items = to_dicts(detect_items(gray, smap.grid, smap.rooms, smap.px_per_ft, smap.cell_in,
+                                       pack, router, context))
+
     unnamed = sum(1 for lb in labels if lb.name.startswith("Space "))
     if unnamed:
         smap.warnings.insert(0, f"{unnamed} spaces have no name yet. Select them and type one.")
