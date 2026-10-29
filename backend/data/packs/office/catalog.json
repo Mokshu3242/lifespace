@@ -1,0 +1,770 @@
+{
+ "pack": "office",
+ "note": "Standard US sizes in inches. Typical mid-range US prices, 2026.",
+ "items": [
+  {
+   "id": "desk-office",
+   "name": "Office desk",
+   "category": "table",
+   "size_in": {
+    "w": 60,
+    "d": 30,
+    "h": 30
+   },
+   "price_usd": 300,
+   "watts": 0,
+   "rooms": [
+    "open work area",
+    "office"
+   ],
+   "uses": [
+    "work"
+   ]
+  },
+  {
+   "id": "desk-standing",
+   "name": "Standing desk",
+   "category": "table",
+   "size_in": {
+    "w": 60,
+    "d": 30,
+    "h": 48
+   },
+   "price_usd": 500,
+   "watts": 50,
+   "rooms": [
+    "open work area",
+    "office"
+   ],
+   "uses": [
+    "work"
+   ]
+  },
+  {
+   "id": "bench-desk-4",
+   "name": "Bench desk for 4",
+   "category": "table",
+   "size_in": {
+    "w": 120,
+    "d": 60,
+    "h": 30
+   },
+   "price_usd": 1200,
+   "watts": 0,
+   "rooms": [
+    "open work area"
+   ],
+   "uses": [
+    "work"
+   ]
+  },
+  {
+   "id": "task-chair",
+   "name": "Task chair",
+   "category": "seat",
+   "size_in": {
+    "w": 26,
+    "d": 26,
+    "h": 40
+   },
+   "price_usd": 250,
+   "watts": 0,
+   "rooms": [
+    "open work area",
+    "office",
+    "meeting room"
+   ],
+   "uses": [
+    "sit",
+    "work"
+   ]
+  },
+  {
+   "id": "monitor",
+   "name": "24 in monitor",
+   "category": "media",
+   "size_in": {
+    "w": 21,
+    "d": 8,
+    "h": 16
+   },
+   "price_usd": 150,
+   "watts": 20,
+   "rooms": [
+    "open work area",
+    "office"
+   ],
+   "uses": [
+    "work"
+   ]
+  },
+  {
+   "id": "pedestal",
+   "name": "Mobile file pedestal",
+   "category": "storage",
+   "size_in": {
+    "w": 16,
+    "d": 22,
+    "h": 24
+   },
+   "price_usd": 180,
+   "watts": 0,
+   "rooms": [
+    "open work area",
+    "office"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "cabinet",
+   "name": "Storage cabinet",
+   "category": "storage",
+   "size_in": {
+    "w": 36,
+    "d": 18,
+    "h": 72
+   },
+   "price_usd": 350,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "meet-4",
+   "name": "Meeting table for 4",
+   "category": "table",
+   "size_in": {
+    "w": 48,
+    "d": 48,
+    "h": 30
+   },
+   "price_usd": 450,
+   "watts": 0,
+   "rooms": [
+    "meeting room",
+    "phone booth"
+   ],
+   "uses": [
+    "meet"
+   ]
+  },
+  {
+   "id": "meet-8",
+   "name": "Meeting table for 8",
+   "category": "table",
+   "size_in": {
+    "w": 96,
+    "d": 42,
+    "h": 30
+   },
+   "price_usd": 1100,
+   "watts": 0,
+   "rooms": [
+    "meeting room"
+   ],
+   "uses": [
+    "meet"
+   ]
+  },
+  {
+   "id": "meet-chair",
+   "name": "Meeting chair",
+   "category": "seat",
+   "size_in": {
+    "w": 22,
+    "d": 22,
+    "h": 34
+   },
+   "price_usd": 150,
+   "watts": 0,
+   "rooms": [
+    "meeting room"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "screen-65",
+   "name": "65 in display on stand",
+   "category": "media",
+   "size_in": {
+    "w": 58,
+    "d": 24,
+    "h": 60
+   },
+   "price_usd": 1100,
+   "watts": 150,
+   "rooms": [
+    "meeting room"
+   ],
+   "uses": [
+    "present"
+   ]
+  },
+  {
+   "id": "whiteboard",
+   "name": "Mobile whiteboard",
+   "category": "media",
+   "size_in": {
+    "w": 48,
+    "d": 24,
+    "h": 72
+   },
+   "price_usd": 250,
+   "watts": 0,
+   "rooms": [
+    "meeting room",
+    "open work area"
+   ],
+   "uses": [
+    "present"
+   ]
+  },
+  {
+   "id": "phone-booth",
+   "name": "One-person phone booth",
+   "category": "room",
+   "size_in": {
+    "w": 40,
+    "d": 40,
+    "h": 88
+   },
+   "price_usd": 6000,
+   "watts": 60,
+   "rooms": [
+    "open work area"
+   ],
+   "uses": [
+    "call"
+   ]
+  },
+  {
+   "id": "reception-desk",
+   "name": "Reception desk",
+   "category": "table",
+   "size_in": {
+    "w": 72,
+    "d": 30,
+    "h": 42
+   },
+   "price_usd": 900,
+   "watts": 0,
+   "rooms": [
+    "reception"
+   ],
+   "uses": [
+    "work",
+    "greet"
+   ]
+  },
+  {
+   "id": "waiting-chair",
+   "name": "Waiting chair",
+   "category": "seat",
+   "size_in": {
+    "w": 24,
+    "d": 26,
+    "h": 32
+   },
+   "price_usd": 180,
+   "watts": 0,
+   "rooms": [
+    "reception",
+    "lounge"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "lounge-sofa",
+   "name": "Lounge sofa",
+   "category": "seat",
+   "size_in": {
+    "w": 80,
+    "d": 34,
+    "h": 32
+   },
+   "price_usd": 1100,
+   "watts": 0,
+   "rooms": [
+    "lounge",
+    "reception"
+   ],
+   "uses": [
+    "sit",
+    "rest"
+   ]
+  },
+  {
+   "id": "lounge-chair",
+   "name": "Lounge chair",
+   "category": "seat",
+   "size_in": {
+    "w": 30,
+    "d": 32,
+    "h": 32
+   },
+   "price_usd": 400,
+   "watts": 0,
+   "rooms": [
+    "lounge",
+    "reception"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "side-table",
+   "name": "Side table",
+   "category": "table",
+   "size_in": {
+    "w": 20,
+    "d": 20,
+    "h": 20
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "lounge",
+    "reception"
+   ],
+   "uses": [
+    "place"
+   ]
+  },
+  {
+   "id": "cafe-table",
+   "name": "Cafe table",
+   "category": "table",
+   "size_in": {
+    "w": 30,
+    "d": 30,
+    "h": 30
+   },
+   "price_usd": 200,
+   "watts": 0,
+   "rooms": [
+    "pantry",
+    "lounge"
+   ],
+   "uses": [
+    "eat"
+   ]
+  },
+  {
+   "id": "cafe-chair",
+   "name": "Cafe chair",
+   "category": "seat",
+   "size_in": {
+    "w": 18,
+    "d": 20,
+    "h": 32
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "pantry",
+    "lounge"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "pantry-stool",
+   "name": "Counter stool",
+   "category": "seat",
+   "size_in": {
+    "w": 16,
+    "d": 16,
+    "h": 30
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "pantry"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "fridge-office",
+   "name": "Refrigerator",
+   "category": "appliance",
+   "size_in": {
+    "w": 30,
+    "d": 32,
+    "h": 68
+   },
+   "price_usd": 1200,
+   "watts": 150,
+   "rooms": [
+    "pantry"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "microwave-office",
+   "name": "Microwave",
+   "category": "appliance",
+   "size_in": {
+    "w": 20,
+    "d": 15,
+    "h": 12
+   },
+   "price_usd": 120,
+   "watts": 1000,
+   "rooms": [
+    "pantry"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "coffee-machine",
+   "name": "Coffee machine",
+   "category": "appliance",
+   "size_in": {
+    "w": 12,
+    "d": 16,
+    "h": 18
+   },
+   "price_usd": 400,
+   "watts": 1400,
+   "rooms": [
+    "pantry"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "water-cooler",
+   "name": "Water dispenser",
+   "category": "appliance",
+   "size_in": {
+    "w": 13,
+    "d": 13,
+    "h": 40
+   },
+   "price_usd": 200,
+   "watts": 100,
+   "rooms": [
+    "pantry",
+    "hallway"
+   ],
+   "uses": [
+    "drink"
+   ]
+  },
+  {
+   "id": "dishwasher-office",
+   "name": "Dishwasher",
+   "category": "appliance",
+   "size_in": {
+    "w": 24,
+    "d": 24,
+    "h": 34
+   },
+   "price_usd": 600,
+   "watts": 1200,
+   "rooms": [
+    "pantry"
+   ],
+   "uses": [
+    "clean"
+   ]
+  },
+  {
+   "id": "printer",
+   "name": "Office printer",
+   "category": "appliance",
+   "size_in": {
+    "w": 24,
+    "d": 24,
+    "h": 40
+   },
+   "price_usd": 900,
+   "watts": 600,
+   "rooms": [
+    "open work area",
+    "storage",
+    "hallway"
+   ],
+   "uses": [
+    "print"
+   ]
+  },
+  {
+   "id": "locker",
+   "name": "Locker unit",
+   "category": "storage",
+   "size_in": {
+    "w": 36,
+    "d": 18,
+    "h": 72
+   },
+   "price_usd": 450,
+   "watts": 0,
+   "rooms": [
+    "hallway",
+    "storage"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "server-rack",
+   "name": "Server rack",
+   "category": "appliance",
+   "size_in": {
+    "w": 24,
+    "d": 42,
+    "h": 80
+   },
+   "price_usd": 1500,
+   "watts": 1200,
+   "rooms": [
+    "server room"
+   ],
+   "uses": [
+    "it"
+   ]
+  },
+  {
+   "id": "coat-rack",
+   "name": "Coat rack",
+   "category": "storage",
+   "size_in": {
+    "w": 20,
+    "d": 20,
+    "h": 70
+   },
+   "price_usd": 60,
+   "watts": 0,
+   "rooms": [
+    "reception",
+    "hallway"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "acoustic-panel",
+   "name": "Acoustic wall panel",
+   "category": "noise",
+   "size_in": {
+    "w": 24,
+    "d": 2,
+    "h": 48
+   },
+   "price_usd": 120,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "quiet"
+   ]
+  },
+  {
+   "id": "divider",
+   "name": "Desk privacy divider",
+   "category": "noise",
+   "size_in": {
+    "w": 60,
+    "d": 2,
+    "h": 24
+   },
+   "price_usd": 150,
+   "watts": 0,
+   "rooms": [
+    "open work area"
+   ],
+   "uses": [
+    "quiet"
+   ]
+  },
+  {
+   "id": "desk-lamp",
+   "name": "LED desk lamp",
+   "category": "light",
+   "size_in": {
+    "w": 8,
+    "d": 8,
+    "h": 18
+   },
+   "price_usd": 50,
+   "watts": 8,
+   "rooms": [
+    "open work area",
+    "office"
+   ],
+   "uses": [
+    "light"
+   ]
+  },
+  {
+   "id": "floor-lamp-office",
+   "name": "Floor lamp (LED)",
+   "category": "light",
+   "size_in": {
+    "w": 12,
+    "d": 12,
+    "h": 64
+   },
+   "price_usd": 80,
+   "watts": 10,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "light"
+   ]
+  },
+  {
+   "id": "air-purifier-office",
+   "name": "Air purifier",
+   "category": "air",
+   "size_in": {
+    "w": 14,
+    "d": 14,
+    "h": 26
+   },
+   "price_usd": 300,
+   "watts": 60,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "air"
+   ]
+  },
+  {
+   "id": "fan-office",
+   "name": "Pedestal fan",
+   "category": "air",
+   "size_in": {
+    "w": 16,
+    "d": 16,
+    "h": 48
+   },
+   "price_usd": 70,
+   "watts": 45,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "cool"
+   ]
+  },
+  {
+   "id": "plant-office",
+   "name": "Large potted plant",
+   "category": "decor",
+   "size_in": {
+    "w": 18,
+    "d": 18,
+    "h": 60
+   },
+   "price_usd": 120,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "comfort"
+   ]
+  },
+  {
+   "id": "first-aid",
+   "name": "First aid cabinet",
+   "category": "safety",
+   "size_in": {
+    "w": 15,
+    "d": 6,
+    "h": 20
+   },
+   "price_usd": 80,
+   "watts": 0,
+   "rooms": [
+    "pantry",
+    "hallway"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "extinguisher",
+   "name": "Fire extinguisher",
+   "category": "safety",
+   "size_in": {
+    "w": 8,
+    "d": 6,
+    "h": 20
+   },
+   "price_usd": 60,
+   "watts": 0,
+   "rooms": [
+    "hallway",
+    "pantry"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "toilet-office",
+   "name": "Toilet",
+   "category": "fixture",
+   "size_in": {
+    "w": 15,
+    "d": 28,
+    "h": 30
+   },
+   "price_usd": 250,
+   "watts": 0,
+   "rooms": [
+    "restroom"
+   ],
+   "uses": [
+    "wash"
+   ]
+  },
+  {
+   "id": "sink-office",
+   "name": "Wall sink",
+   "category": "fixture",
+   "size_in": {
+    "w": 20,
+    "d": 18,
+    "h": 34
+   },
+   "price_usd": 250,
+   "watts": 0,
+   "rooms": [
+    "restroom",
+    "pantry"
+   ],
+   "uses": [
+    "wash"
+   ]
+  }
+ ]
+}

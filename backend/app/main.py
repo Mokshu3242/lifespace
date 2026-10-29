@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.api.spaces import router as spaces_router
+from app.api.catalog import router as catalog_router
 from app.config import get_settings
 from app.router.model_router import AllProvidersFailed, CHAINS, get_router
 
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(spaces_router)
+app.include_router(catalog_router)
 
 
 @app.get("/api/health")

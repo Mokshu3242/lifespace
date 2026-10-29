@@ -1,0 +1,787 @@
+{
+ "pack": "home",
+ "note": "Standard US sizes in inches. Typical mid-range US prices, 2026.",
+ "items": [
+  {
+   "id": "bed-queen",
+   "name": "Queen bed",
+   "category": "bed",
+   "size_in": {
+    "w": 64,
+    "d": 84,
+    "h": 40
+   },
+   "price_usd": 650,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep"
+   ]
+  },
+  {
+   "id": "bed-full",
+   "name": "Full bed",
+   "category": "bed",
+   "size_in": {
+    "w": 56,
+    "d": 78,
+    "h": 40
+   },
+   "price_usd": 480,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep"
+   ]
+  },
+  {
+   "id": "bed-twin",
+   "name": "Twin bed",
+   "category": "bed",
+   "size_in": {
+    "w": 41,
+    "d": 79,
+    "h": 36
+   },
+   "price_usd": 320,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep"
+   ]
+  },
+  {
+   "id": "bed-king",
+   "name": "King bed",
+   "category": "bed",
+   "size_in": {
+    "w": 80,
+    "d": 84,
+    "h": 40
+   },
+   "price_usd": 900,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep"
+   ]
+  },
+  {
+   "id": "nightstand",
+   "name": "Nightstand",
+   "category": "storage",
+   "size_in": {
+    "w": 20,
+    "d": 16,
+    "h": 24
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "dresser",
+   "name": "6-drawer dresser",
+   "category": "storage",
+   "size_in": {
+    "w": 60,
+    "d": 18,
+    "h": 32
+   },
+   "price_usd": 380,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "wardrobe",
+   "name": "Wardrobe",
+   "category": "storage",
+   "size_in": {
+    "w": 40,
+    "d": 24,
+    "h": 79
+   },
+   "price_usd": 300,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "sofa-3",
+   "name": "3-seat sofa",
+   "category": "seat",
+   "size_in": {
+    "w": 84,
+    "d": 36,
+    "h": 34
+   },
+   "price_usd": 800,
+   "watts": 0,
+   "rooms": [
+    "living room"
+   ],
+   "uses": [
+    "sit",
+    "rest"
+   ]
+  },
+  {
+   "id": "sofa-2",
+   "name": "Loveseat",
+   "category": "seat",
+   "size_in": {
+    "w": 60,
+    "d": 34,
+    "h": 34
+   },
+   "price_usd": 550,
+   "watts": 0,
+   "rooms": [
+    "living room"
+   ],
+   "uses": [
+    "sit",
+    "rest"
+   ]
+  },
+  {
+   "id": "armchair",
+   "name": "Armchair",
+   "category": "seat",
+   "size_in": {
+    "w": 32,
+    "d": 34,
+    "h": 34
+   },
+   "price_usd": 300,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "coffee-table",
+   "name": "Coffee table",
+   "category": "table",
+   "size_in": {
+    "w": 42,
+    "d": 22,
+    "h": 18
+   },
+   "price_usd": 150,
+   "watts": 0,
+   "rooms": [
+    "living room"
+   ],
+   "uses": [
+    "place"
+   ]
+  },
+  {
+   "id": "tv-stand",
+   "name": "TV stand with 55 in TV",
+   "category": "media",
+   "size_in": {
+    "w": 60,
+    "d": 16,
+    "h": 24
+   },
+   "price_usd": 650,
+   "watts": 90,
+   "rooms": [
+    "living room"
+   ],
+   "uses": [
+    "watch"
+   ]
+  },
+  {
+   "id": "bookshelf",
+   "name": "Bookshelf",
+   "category": "storage",
+   "size_in": {
+    "w": 31,
+    "d": 11,
+    "h": 79
+   },
+   "price_usd": 80,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "office"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "rug",
+   "name": "Area rug 5x8",
+   "category": "decor",
+   "size_in": {
+    "w": 60,
+    "d": 96,
+    "h": 0
+   },
+   "price_usd": 120,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "comfort"
+   ]
+  },
+  {
+   "id": "dining-4",
+   "name": "Dining table for 4",
+   "category": "table",
+   "size_in": {
+    "w": 48,
+    "d": 30,
+    "h": 30
+   },
+   "price_usd": 300,
+   "watts": 0,
+   "rooms": [
+    "dining area",
+    "kitchen"
+   ],
+   "uses": [
+    "eat"
+   ]
+  },
+  {
+   "id": "dining-6",
+   "name": "Dining table for 6",
+   "category": "table",
+   "size_in": {
+    "w": 72,
+    "d": 36,
+    "h": 30
+   },
+   "price_usd": 550,
+   "watts": 0,
+   "rooms": [
+    "dining area"
+   ],
+   "uses": [
+    "eat"
+   ]
+  },
+  {
+   "id": "dining-chair",
+   "name": "Dining chair",
+   "category": "seat",
+   "size_in": {
+    "w": 18,
+    "d": 21,
+    "h": 33
+   },
+   "price_usd": 60,
+   "watts": 0,
+   "rooms": [
+    "dining area",
+    "kitchen"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "bar-stool",
+   "name": "Bar stool",
+   "category": "seat",
+   "size_in": {
+    "w": 16,
+    "d": 16,
+    "h": 30
+   },
+   "price_usd": 70,
+   "watts": 0,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "sit"
+   ]
+  },
+  {
+   "id": "fridge",
+   "name": "Refrigerator",
+   "category": "appliance",
+   "size_in": {
+    "w": 30,
+    "d": 32,
+    "h": 68
+   },
+   "price_usd": 1200,
+   "watts": 150,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "range",
+   "name": "Stove and oven",
+   "category": "appliance",
+   "size_in": {
+    "w": 30,
+    "d": 26,
+    "h": 36
+   },
+   "price_usd": 800,
+   "watts": 2000,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "dishwasher",
+   "name": "Dishwasher",
+   "category": "appliance",
+   "size_in": {
+    "w": 24,
+    "d": 24,
+    "h": 34
+   },
+   "price_usd": 600,
+   "watts": 1200,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "clean"
+   ]
+  },
+  {
+   "id": "microwave",
+   "name": "Microwave",
+   "category": "appliance",
+   "size_in": {
+    "w": 20,
+    "d": 15,
+    "h": 12
+   },
+   "price_usd": 120,
+   "watts": 1000,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "cook"
+   ]
+  },
+  {
+   "id": "kitchen-island",
+   "name": "Kitchen island cart",
+   "category": "table",
+   "size_in": {
+    "w": 48,
+    "d": 24,
+    "h": 36
+   },
+   "price_usd": 350,
+   "watts": 0,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "cook",
+    "place"
+   ]
+  },
+  {
+   "id": "washer",
+   "name": "Washing machine",
+   "category": "appliance",
+   "size_in": {
+    "w": 27,
+    "d": 30,
+    "h": 39
+   },
+   "price_usd": 800,
+   "watts": 500,
+   "rooms": [
+    "laundry",
+    "closet",
+    "bathroom"
+   ],
+   "uses": [
+    "clean"
+   ]
+  },
+  {
+   "id": "dryer",
+   "name": "Dryer",
+   "category": "appliance",
+   "size_in": {
+    "w": 27,
+    "d": 30,
+    "h": 39
+   },
+   "price_usd": 750,
+   "watts": 3000,
+   "rooms": [
+    "laundry",
+    "closet",
+    "bathroom"
+   ],
+   "uses": [
+    "clean"
+   ]
+  },
+  {
+   "id": "toilet",
+   "name": "Toilet",
+   "category": "fixture",
+   "size_in": {
+    "w": 15,
+    "d": 28,
+    "h": 30
+   },
+   "price_usd": 250,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "wash"
+   ]
+  },
+  {
+   "id": "vanity",
+   "name": "Bathroom vanity with sink",
+   "category": "fixture",
+   "size_in": {
+    "w": 30,
+    "d": 21,
+    "h": 34
+   },
+   "price_usd": 400,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "wash"
+   ]
+  },
+  {
+   "id": "tub",
+   "name": "Bathtub",
+   "category": "fixture",
+   "size_in": {
+    "w": 30,
+    "d": 60,
+    "h": 20
+   },
+   "price_usd": 600,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "wash"
+   ]
+  },
+  {
+   "id": "shower",
+   "name": "Shower stall",
+   "category": "fixture",
+   "size_in": {
+    "w": 36,
+    "d": 36,
+    "h": 80
+   },
+   "price_usd": 700,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "wash"
+   ]
+  },
+  {
+   "id": "desk-home",
+   "name": "Home desk",
+   "category": "table",
+   "size_in": {
+    "w": 47,
+    "d": 24,
+    "h": 30
+   },
+   "price_usd": 150,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "living room",
+    "office"
+   ],
+   "uses": [
+    "work"
+   ]
+  },
+  {
+   "id": "desk-chair",
+   "name": "Desk chair",
+   "category": "seat",
+   "size_in": {
+    "w": 24,
+    "d": 24,
+    "h": 38
+   },
+   "price_usd": 150,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "living room",
+    "office"
+   ],
+   "uses": [
+    "sit",
+    "work"
+   ]
+  },
+  {
+   "id": "floor-lamp",
+   "name": "Floor lamp (LED)",
+   "category": "light",
+   "size_in": {
+    "w": 12,
+    "d": 12,
+    "h": 64
+   },
+   "price_usd": 60,
+   "watts": 10,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "light"
+   ]
+  },
+  {
+   "id": "table-lamp",
+   "name": "Table lamp (LED)",
+   "category": "light",
+   "size_in": {
+    "w": 10,
+    "d": 10,
+    "h": 20
+   },
+   "price_usd": 35,
+   "watts": 8,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "light"
+   ]
+  },
+  {
+   "id": "ceiling-fan",
+   "name": "Ceiling fan",
+   "category": "air",
+   "size_in": {
+    "w": 52,
+    "d": 52,
+    "h": 0
+   },
+   "price_usd": 200,
+   "watts": 60,
+   "rooms": [
+    "bedroom",
+    "living room"
+   ],
+   "uses": [
+    "cool"
+   ]
+  },
+  {
+   "id": "air-purifier",
+   "name": "Air purifier",
+   "category": "air",
+   "size_in": {
+    "w": 10,
+    "d": 10,
+    "h": 20
+   },
+   "price_usd": 150,
+   "watts": 40,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "air"
+   ]
+  },
+  {
+   "id": "window-ac",
+   "name": "Window air conditioner",
+   "category": "air",
+   "size_in": {
+    "w": 19,
+    "d": 16,
+    "h": 13
+   },
+   "price_usd": 350,
+   "watts": 550,
+   "rooms": [
+    "bedroom",
+    "living room"
+   ],
+   "uses": [
+    "cool"
+   ]
+  },
+  {
+   "id": "space-heater",
+   "name": "Space heater",
+   "category": "air",
+   "size_in": {
+    "w": 10,
+    "d": 8,
+    "h": 12
+   },
+   "price_usd": 60,
+   "watts": 1500,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "heat"
+   ]
+  },
+  {
+   "id": "plant",
+   "name": "Potted plant",
+   "category": "decor",
+   "size_in": {
+    "w": 14,
+    "d": 14,
+    "h": 36
+   },
+   "price_usd": 50,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "comfort"
+   ]
+  },
+  {
+   "id": "shoe-rack",
+   "name": "Shoe rack",
+   "category": "storage",
+   "size_in": {
+    "w": 30,
+    "d": 12,
+    "h": 20
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "foyer",
+    "hallway",
+    "closet"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "grab-bar",
+   "name": "Bathroom grab bar",
+   "category": "safety",
+   "size_in": {
+    "w": 24,
+    "d": 3,
+    "h": 3
+   },
+   "price_usd": 35,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "night-light",
+   "name": "Motion night light",
+   "category": "safety",
+   "size_in": {
+    "w": 3,
+    "d": 2,
+    "h": 3
+   },
+   "price_usd": 15,
+   "watts": 1,
+   "rooms": [
+    "hallway",
+    "bathroom",
+    "bedroom"
+   ],
+   "uses": [
+    "light",
+    "safety"
+   ]
+  },
+  {
+   "id": "smoke-alarm",
+   "name": "Smoke alarm",
+   "category": "safety",
+   "size_in": {
+    "w": 6,
+    "d": 6,
+    "h": 2
+   },
+   "price_usd": 25,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "safety"
+   ]
+  }
+ ]
+}
