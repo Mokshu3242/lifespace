@@ -96,3 +96,15 @@ def test_read_floor_plan_end_to_end_with_fake_models(monkeypatch):
     assert m.rooms and all(r.name == "Room" and r.source == "models agree" for r in m.rooms)
     assert m.entrance is not None
     assert abs(m.px_per_ft - PX_PER_FT) / PX_PER_FT < 0.35   # from the width estimate
+
+
+def test_chair_scale_from_repeated_chairs():
+    import numpy as np
+    from app.space.reader import chair_scale
+    m = np.zeros((400, 600), bool)
+    for i in range(6):                      # six 22 in chairs at 12 px/ft = 22 px each
+        m[50:72, 40 + i * 60:62 + i * 60] = True
+    m[200:300, 100:150] = True              # a desk: not square, ignored
+    ppf, n = chair_scale(m)
+    assert n == 6 and abs(ppf - 12) < 0.5
+    assert chair_scale(m[:, :150]) is None  # only 2 chairs: not enough to trust

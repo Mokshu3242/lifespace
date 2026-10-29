@@ -294,6 +294,29 @@ def _grow(grid: np.ndarray, only: set[int] | None, steps: int | None) -> None:
 
 
 # ---------------------------------------------------------------- main
+CHAIR_IN = 22   # most chairs and stools on plans are 18 to 26 in across
+
+
+def chair_scale(blocked: np.ndarray) -> tuple[float, int] | None:
+    """px per ft from chairs. Plans repeat one chair size many times, so the biggest group of
+    near-square shapes that agree on size (4+ of them) is almost always the chairs."""
+    n, lab, st, _ = cv2.connectedComponentsWithStats(blocked.astype(np.uint8), 8)
+    min_px = max(6, 0.015 * max(blocked.shape))      # smaller is a symbol or a speck, not a chair
+    sizes = []
+    for i in range(1, n):
+        _, _, bw, bh, area = (int(v) for v in st[i])
+        if min(bw, bh) >= min_px and 0.7 <= bw / bh <= 1.4 and area >= 0.6 * bw * bh:
+            sizes.append((bw + bh) / 2)
+    best: list[float] = []
+    for c in sizes:
+        group = [s for s in sizes if abs(s - c) <= 0.2 * c]
+        if len(group) > len(best):
+            best = group
+    if len(best) < 4:
+        return None
+    return float(np.median(best)) / (CHAIR_IN / 12), len(best)
+
+
 def build_space_map(gray: np.ndarray, labels: list[Label],
                     entrance_px: tuple[float, float] | None,
                     width_ft_hint: float | None = None,
@@ -389,6 +412,13 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         px_per_ft = w / width_ft_hint
         scale_source = f"estimated by the vision model from doors and furniture ({width_ft_hint:.0f} ft wide)"
         warnings.append("No printed sizes on the plan. Scale was estimated from doors and furniture; check it.")
+        # Chairs are a better ruler than a model's guess (models gave 40, 50 and 60 ft for the
+        # same 40 ft office). When 4+ chairs agree, they set the scale.
+        chairs = chair_scale(blocked)
+        if chairs and abs(chairs[0] - px_per_ft) > 0.05 * chairs[0]:
+            px_per_ft = chairs[0]
+            scale_source = (f"measured from {chairs[1]} chairs (about {CHAIR_IN} in each); the model "
+                            f"guessed {width_ft_hint:.0f} ft wide")
         # Sanity check: only catch an estimate that is clearly broken. Offices split into many
         # small spaces (booths, desk pods), so a 50 sq ft middle room is normal there.
         by_name: dict[str, int] = {}
