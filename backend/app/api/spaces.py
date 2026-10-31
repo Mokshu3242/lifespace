@@ -54,7 +54,7 @@ async def create_space(file: UploadFile = File(...),
     (folder / "plan.img").write_bytes(data)
     out = {"id": space_id, "provider": get_router().last_provider,
            "pack": pack, "describe": describe, **smap.to_dict()}
-    (folder / "map.json").write_text(json.dumps(out))
+    (folder / "map.json").write_text(json.dumps(out), encoding="utf-8")
     return out
 
 
@@ -63,7 +63,7 @@ def get_space(space_id: str):
     p = _path(space_id, "map.json")
     if not p.exists():
         raise HTTPException(404, "Space not found")
-    return json.loads(p.read_text())
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 @router.get("/{space_id}/image")
@@ -87,13 +87,13 @@ def save_space(space_id: str, edit: MapEdit):
     p = _path(space_id, "map.json")
     if not p.exists():
         raise HTTPException(404, "Space not found")
-    current = json.loads(p.read_text())
+    current = json.loads(p.read_text(encoding="utf-8"))
     if len(edit.grid) != current["rows"] or any(len(r) != current["cols"] for r in edit.grid):
         raise HTTPException(400, "Grid size changed; that isn't allowed")
     current.update(grid=edit.grid, rooms=edit.rooms, entrance=edit.entrance, edited=True)
     if edit.items is not None:
         current["items"] = edit.items
-    p.write_text(json.dumps(current))
+    p.write_text(json.dumps(current), encoding="utf-8")
     return current
 
 
@@ -113,7 +113,7 @@ def create_design(space_id: str, ask: RedesignAsk):
         raise HTTPException(404, "Space not found")
     if not 50 <= ask.budget <= 100_000:
         raise HTTPException(400, "Budget must be between $50 and $100,000")
-    space = json.loads(p.read_text())
+    space = json.loads(p.read_text(encoding="utf-8"))
     goals = " ".join(ask.goals.split())[:300]
     try:
         design = redesign(space, ask.budget, goals, get_router(),
@@ -122,10 +122,16 @@ def create_design(space_id: str, ask: RedesignAsk):
         raise HTTPException(503, f"Models are unavailable: {e}")
     folder = p.parent / "designs"
     folder.mkdir(exist_ok=True)
-    n = len(list(folder.glob("*.json"))) + 1
+    n = len([f for f in folder.glob("*.json") if f.stem.isdigit()]) + 1
     out = {"id": n, "goals": goals, "provider": get_router().last_provider, **design.to_dict()}
-    (folder / f"{n}.json").write_text(json.dumps(out))
-    return out
+    while True:   # two redesigns at once must not overwrite each other
+        try:
+            with open(folder / f"{n}.json", "x", encoding="utf-8") as fh:
+                fh.write(json.dumps(out))
+            return out
+        except FileExistsError:
+            n += 1
+            out["id"] = n
 
 
 @router.get("/{space_id}/designs")
@@ -133,5 +139,37 @@ def list_designs(space_id: str):
     folder = _path(space_id, "designs")
     if not folder.exists():
         return []
-    files = sorted(folder.glob("*.json"), key=lambda f: int(f.stem))
-    return [json.loads(f.read_text()) for f in files]
+    files = sorted((f for f in folder.glob("*.json") if f.stem.isdigit()), key=lambda f: int(f.stem))
+    return [json.loads(f.read_text(encoding="utf-8")) for f in files]
+
+
+class SimulateAsk(BaseModel):
+    design_id: int | None = None
+
+
+@router.post("/{space_id}/simulate")
+def run_simulation(space_id: str, ask: SimulateAsk):
+    """AI people live a day Before and After a redesign. Paths and numbers come from code."""
+    from app.space.reader import context_line
+    from app.space.simulate import simulate
+
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    space = json.loads(p.read_text(encoding="utf-8"))
+    after, changes = None, []
+    if ask.design_id is not None:
+        dp = _path(space_id, "designs") / f"{int(ask.design_id)}.json"
+        if not dp.exists():
+            raise HTTPException(404, "Design not found")
+        design = json.loads(dp.read_text(encoding="utf-8"))
+        after, changes = design["items"], design.get("changes", [])
+    out = simulate(space, after, get_router(),
+                   context_line(space.get("pack") or "home", space.get("describe") or ""), changes)
+    out["design_id"] = ask.design_id
+    from app.space.scorecard import scorecard
+    out["scores"] = scorecard(space, after, out)
+    folder = p.parent / "sims"
+    folder.mkdir(exist_ok=True)
+    (folder / f"{ask.design_id or 0}.json").write_text(json.dumps(out), encoding="utf-8")
+    return out

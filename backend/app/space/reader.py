@@ -20,6 +20,7 @@ WORK_SIDE = 1280          # same size the router sends to the vision model
 CELL_IN = 6               # one grid cell = 6 inches
 WALL, OUTSIDE = -1, -2    # grid codes; rooms are 0..n-1
 UNASSIGNED = -3           # floor not yet given to a room (only during building)
+DOOR_LINE_PX = 4           # wall lines thinner than this are door leaves and swing arcs, not walls
 FIXTURE = -4              # enclosed pockets nobody can walk into: counters, tubs, window strips
 
 PACK_ROOMS = {
@@ -439,6 +440,13 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         px_per_ft = w / 60.0
         scale_source = "guess: no printed sizes found, assumed plan is 60 ft wide"
         warnings.append("No room sizes found on the plan. Scale is a guess; set it by hand.")
+
+    # ---- doors: plans draw a door as thin lines (the leaf, a dotted swing arc) across the opening.
+    # Those lines are part of the wall drawing but nobody walks into them as walls, so strip lines
+    # thinner than real walls before making the grid. The opening becomes floor people can pass.
+    thick = cv2.morphologyEx(walls.astype(np.uint8), cv2.MORPH_OPEN,
+                             np.ones((DOOR_LINE_PX, DOOR_LINE_PX), np.uint8)).astype(bool)
+    room_px[walls & ~thick] = UNASSIGNED
 
     # ---- downsample pixels to grid cells
     cell_px = px_per_ft * CELL_IN / 12

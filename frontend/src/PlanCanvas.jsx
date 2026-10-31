@@ -6,7 +6,7 @@ import { CODES, roomColor } from './mapStyle'
  * Reports cell clicks/drags through onPaint(row, col, isFirst).
  */
 export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, showPlan,
-  planImage, onPaint, items = [], selectedItem = null }) {
+  planImage, onPaint, items = [], selectedItem = null, people = [] }) {
   const ref = useRef(null)
   const dragging = useRef(false)
   const last = useRef(null)
@@ -110,6 +110,31 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.arc((ec + 0.5) * S, (er + 0.5) * S, Math.max(5, S), 0, Math.PI * 2)
       ctx.fill()
     }
+    // people: a fading trail and a dot where they are now
+    for (const p of people) {
+      ctx.strokeStyle = p.color
+      ctx.lineWidth = Math.max(2, S * 0.5)
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.globalAlpha = 0.55
+      ctx.beginPath()
+      p.trail.forEach(([c, r], i) => {
+        const x = (c + 0.5) * S, y = (r + 0.5) * S
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.globalAlpha = 1
+      const [c, r] = p.at
+      ctx.fillStyle = p.color
+      ctx.strokeStyle = '#fff'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc((c + 0.5) * S, (r + 0.5) * S, Math.max(6, S * 1.2), 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+
     // room names last, on a light pill, so furniture never covers them.
     // A name that doesn't fit its room is shortened to its last word, or left out.
     ctx.font = `600 ${Math.min(14, Math.max(10, S * 1.5))}px system-ui, sans-serif`
@@ -125,7 +150,7 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       if (ctx.measureText(label).width + 10 > span && room.id !== selectedId) continue
       pill(ctx, label, (cx + 0.5) * S, (cy + 0.5) * S, 'rgba(255,255,255,0.88)', '#1d2320')
     }
-  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem])
+  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem, people])
 
   function cellAt(e) {
     const rect = ref.current.getBoundingClientRect()

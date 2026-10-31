@@ -124,3 +124,39 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .changes li.change.replace { border-left-color: #2f5d8a; }
 .changes li.change.remove { border-left-color: #b54848; }
 .changes li.change:hover { background: var(--bg); }
+
+.people button { margin-top: 6px; }
+.play-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.clock { font-size: 0.85rem; font-weight: 600; }
+.persons { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.person { border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; }
+.person.on { border-color: var(--accent); }
+.person-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.9rem; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.stats { width: 100%; font-size: 0.82rem; border-collapse: collapse; margin-top: 6px; }
+.stats th { text-align: right; font-weight: 500; color: var(--muted); }
+.stats td { text-align: right; padding: 2px 0; }
+.stats td:first-child, .stats th:first-child { text-align: left; }
+.stats td.good { color: #2f9e6b; font-weight: 600; }
+.stats td.worse { color: var(--bad); font-weight: 600; }
+.voice { font-style: italic; font-size: 0.85rem; margin: 8px 0 0; }
+.legs { font-size: 0.8rem; padding-left: 18px; margin: 8px 0 0; }
+.legs li { margin: 2px 0; }
+.legs li.blocked { color: var(--bad); }
+.legs .t { font-variant-numeric: tabular-nums; font-weight: 600; }
+.small { font-size: 0.72rem; }
+
+.scorecard { display: grid; gap: 10px; margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.metric-head { display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 600; }
+.metric-head .nums { font-variant-numeric: tabular-nums; font-weight: 400; }
+.metric-head .good { color: #2f9e6b; font-weight: 700; }
+.metric-head .worse { color: var(--bad); font-weight: 700; }
+.metric-bar { position: relative; height: 8px; border-radius: 4px; background: var(--line); margin: 4px 0; overflow: visible; }
+.metric-bar span { display: block; height: 100%; border-radius: 4px; transition: width 0.5s; }
+.metric-bar span.hi { background: #2f9e6b; }
+.metric-bar span.mid { background: #d4a72c; }
+.metric-bar span.lo { background: #c9554a; }
+.metric-bar i { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--ink); opacity: 0.6; }
+.flags { font-size: 0.8rem; }
+.flags summary { cursor: pointer; font-weight: 600; }
+.flags ul { padding-left: 18px; margin: 6px 0 0; }

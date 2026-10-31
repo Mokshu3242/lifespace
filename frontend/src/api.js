@@ -20,6 +20,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ budget, goals }),
     }).then(handle),
+  simulate: (id, designId) =>
+    fetch(`/api/spaces/${id}/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ design_id: designId }),
+    }).then(handle),
   designs: (id) => fetch(`/api/spaces/${id}/designs`).then(handle),
   catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
   saveSpace: (id, { grid, rooms, entrance, items }) =>

@@ -3,6 +3,7 @@ import PlanCanvas from './PlanCanvas'
 import { api } from './api'
 import { CODES, KIND_LABEL, areaSqft, isMeta, modelLabel, roomColor } from './mapStyle'
 import RedesignPanel from './RedesignPanel'
+import PeoplePanel from './PeoplePanel'
 
 const SOURCE_LABEL = {
   printed: 'Name read from the plan',
@@ -35,6 +36,10 @@ export default function PlanEditor({ space, onReset }) {
   const [catalog, setCatalog] = useState([])
   const [design, setDesign] = useState(null)
   const [showAfter, setShowAfter] = useState(true)
+  const [sim, setSim] = useState(null)
+  const [playing, setPlaying] = useState(false)
+  const [focus, setFocus] = useState(null)
+  const [step, setStep] = useState(0)          // cells walked so far in the playback
   const [tool, setTool] = useState('select')
   const [showPlan, setShowPlan] = useState(true)
   const [planImage, setPlanImage] = useState(null)
@@ -52,6 +57,48 @@ export default function PlanEditor({ space, onReset }) {
   useEffect(() => {
     api.catalog(space.pack || 'home').then((c) => setCatalog(c.items)).catch(() => {})
   }, [space.pack])
+
+  // the people's day as one long path each, for playback
+  const walks = useMemo(() => {
+    if (!sim) return []
+    const side = showAfter ? 'after' : 'before'
+    return sim.personas.filter((p) => !focus || p.id === focus).map((p) => {
+      const pts = [], marks = []
+      for (const lg of sim[side][p.id].legs) {
+        marks.push({ at: pts.length, label: `${lg.t} ${p.name} · ${lg.note}${lg.blocked ? ' (can\u2019t get there)' : ''}` })
+        for (const pt of lg.path) pts.push(pt)
+      }
+      return { id: p.id, color: p.color, pts, marks }
+    })
+  }, [sim, showAfter, focus])
+
+  useEffect(() => { setStep(0) }, [sim, showAfter, focus])
+
+  useEffect(() => {
+    if (!playing) return
+    let raf, last = performance.now()
+    const longest = Math.max(1, ...walks.map((w) => w.pts.length))
+    const tick = (now) => {
+      const dt = (now - last) / 1000
+      last = now
+      setStep((s) => {
+        const next = s + dt * 45                 // cells per second of playback
+        if (next >= longest) { setPlaying(false); return longest }
+        return next
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [playing, walks])
+
+  const people = walks.map((w) => {
+    const i = Math.min(w.pts.length - 1, Math.floor(step))
+    return { color: w.color, trail: w.pts.slice(Math.max(0, i - 400), i + 1), at: w.pts[Math.max(0, i)] }
+  }).filter((p) => p.at)
+  const clockWalk = walks[0]
+  const clock = clockWalk && step > 0
+    ? [...clockWalk.marks].reverse().find((m) => m.at <= step)?.label : null
 
   const selected = rooms.find((r) => r.id === selectedId)
   const totals = useMemo(() => {
@@ -153,7 +200,7 @@ export default function PlanEditor({ space, onReset }) {
             </button>
           ))}
           <button className="tool" onClick={undo} disabled={!history.current.length}>Undo</button>
-          {tab === 'redesign' && design && (
+          {((tab === 'redesign' && design) || (tab === 'people' && sim)) && (
             <div className="tabs before-after on-map">
               <button className={!showAfter ? 'on' : ''} onClick={() => setShowAfter(false)}>Before</button>
               <button className={showAfter ? 'on' : ''} onClick={() => setShowAfter(true)}>After</button>
@@ -168,7 +215,8 @@ export default function PlanEditor({ space, onReset }) {
         <div className="canvas-wrap">
           <PlanCanvas space={space} grid={grid} rooms={rooms} entrance={entrance}
             selectedId={selectedId} showPlan={showPlan} planImage={planImage} onPaint={paint}
-            items={tab === 'redesign' && design
+            people={tab === 'people' ? people : []}
+            items={(tab === 'redesign' || tab === 'people') && design
               ? (showAfter ? design.items.filter((it) => it.status === 'kept' || it.status === 'new') : items)
               : items}
             selectedItem={selectedItem} />
@@ -188,8 +236,13 @@ export default function PlanEditor({ space, onReset }) {
             onClick={() => setTab('items')}>Items ({items.length})</button>
           <button role="tab" aria-selected={tab === 'redesign'} className={tab === 'redesign' ? 'on' : ''}
             onClick={() => setTab('redesign')}>Redesign</button>
+          <button role="tab" aria-selected={tab === 'people'} className={tab === 'people' ? 'on' : ''}
+            onClick={() => setTab('people')}>People</button>
         </div>
-        {tab === 'redesign' ? (
+        {tab === 'people' ? (
+          <PeoplePanel space={space} design={design} sim={sim} onSim={(s) => { setSim(s); setPlaying(true) }}
+            showAfter={showAfter} playing={playing} onPlay={setPlaying} focus={focus} onFocus={setFocus} clock={clock} />
+        ) : tab === 'redesign' ? (
           <RedesignPanel space={space} dirty={dirty} design={design} onDesign={setDesign}
             onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} />
         ) : tab === 'items' ? (

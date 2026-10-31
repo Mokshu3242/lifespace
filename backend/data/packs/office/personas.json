@@ -1,0 +1,41 @@
+{
+  "pack": "office",
+  "note": "Widths are typical clear widths: a wheelchair is about 30 in wide.",
+  "personas": [
+    {"id": "wheelchair", "name": "Ravi", "about": "34, engineer, uses a wheelchair", "width_in": 32, "color": "#d6572f",
+     "home": "open work area",
+     "day": [
+       {"t": "09:00", "use": "enter", "note": "arrives"},
+       {"t": "09:10", "use": "work", "note": "at his desk"},
+       {"t": "10:30", "use": "drink", "note": "coffee"},
+       {"t": "11:00", "use": "meet", "note": "team meeting"},
+       {"t": "12:30", "use": "eat", "note": "lunch"},
+       {"t": "13:30", "use": "work", "note": "back at the desk"},
+       {"t": "15:00", "use": "wash", "note": "restroom"},
+       {"t": "17:30", "use": "exit", "note": "heads home"}
+     ]},
+    {"id": "newhire", "name": "Lena", "about": "24, first week on the job", "width_in": 22, "color": "#2f7fd6",
+     "home": "open work area",
+     "day": [
+       {"t": "08:50", "use": "enter", "note": "arrives"},
+       {"t": "09:00", "use": "greet", "note": "checks in at reception"},
+       {"t": "09:15", "use": "work", "note": "at her desk"},
+       {"t": "11:00", "use": "meet", "note": "team meeting"},
+       {"t": "12:30", "use": "eat", "note": "lunch"},
+       {"t": "14:00", "use": "call", "note": "a private call"},
+       {"t": "16:00", "use": "drink", "note": "coffee"},
+       {"t": "17:30", "use": "exit", "note": "heads home"}
+     ]},
+    {"id": "manager", "name": "Omar", "about": "45, team manager", "width_in": 22, "color": "#2f9e6b",
+     "home": "private office",
+     "day": [
+       {"t": "08:30", "use": "enter", "note": "arrives"},
+       {"t": "08:40", "use": "work", "note": "in his office"},
+       {"t": "11:00", "use": "meet", "note": "runs the meeting"},
+       {"t": "12:00", "use": "eat", "note": "lunch"},
+       {"t": "14:00", "use": "meet", "note": "one-on-ones"},
+       {"t": "16:30", "use": "drink", "note": "coffee"},
+       {"t": "18:00", "use": "exit", "note": "heads home"}
+     ]}
+  ]
+}

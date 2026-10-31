@@ -4,6 +4,8 @@ Meta, Baseten, Cloudflare and Ollama all speak the OpenAI chat format,
 so most providers share one client. Only image generation differs.
 """
 import base64
+import random
+import time
 
 import httpx
 
@@ -16,7 +18,11 @@ class ProviderError(Exception):
 
 class OpenAICompatProvider:
     def __init__(self, name: str, base_url: str, api_key: str, chat_model: str,
-                 vision_model: str | None, timeout: float, json_format: bool = True):
+                 vision_model: str | None, timeout: float, json_format: bool = True,
+                 max_tokens: int | None = None, send_temperature: bool = True):
+        # Muse Spark is tuned for its default temperature; Meta's docs say to leave it unset
+        self.send_temperature = send_temperature
+        self.max_tokens = max_tokens     # Groq's free tier rejects requests that could exceed 1000 output tokens
         self.json_format = json_format   # some providers reject response_format; the prompt asks for JSON anyway
         self.name = name
         self.base_url = base_url.rstrip("/")
@@ -35,22 +41,52 @@ class OpenAICompatProvider:
         body = {
             "model": self.vision_model if vision else self.chat_model,
             "messages": messages,
-            "temperature": temperature,
         }
+        if self.send_temperature:
+            body["temperature"] = temperature
+        if self.max_tokens:
+            body["max_tokens"] = self.max_tokens
         if json_mode and self.json_format:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        try:
-            r = httpx.post(f"{self.base_url}/chat/completions", json=body,
-                           headers=headers, timeout=self.timeout)
-        except httpx.HTTPError as e:
-            raise ProviderError(f"{self.name}: {e}") from e
+        r = _post_with_retry(self.name, f"{self.base_url}/chat/completions", body, headers, self.timeout)
         if r.status_code >= 400:
             raise ProviderError(f"{self.name}: HTTP {r.status_code} {r.text[:300]}")
         try:
             return r.json()["choices"][0]["message"]["content"]
         except (KeyError, IndexError, ValueError) as e:
             raise ProviderError(f"{self.name}: bad response {r.text[:300]}") from e
+
+
+RETRY_STATUS = {429, 500, 502, 503}
+
+
+def _post_with_retry(name: str, url: str, body: dict, headers: dict, timeout: float,
+                     attempts: int = 3) -> httpx.Response:
+    """Retry rate limits and brief server errors with backoff, honoring Retry-After.
+    Never retry 4xx request errors (they fail the same way again), per Meta's error docs."""
+    delay = 1.0
+    for attempt in range(attempts):
+        try:
+            r = httpx.post(url, json=body, headers=headers, timeout=timeout)
+        except httpx.TimeoutException as e:
+            raise ProviderError(f"{name}: timed out") from e      # a retry would time out too
+        except httpx.HTTPError as e:
+            if attempt == attempts - 1:
+                raise ProviderError(f"{name}: {e}") from e
+            time.sleep(delay + random.random())
+            delay *= 2
+            continue
+        if r.status_code in RETRY_STATUS and attempt < attempts - 1:
+            try:
+                wait = min(10.0, float(r.headers.get("retry-after", delay)))
+            except ValueError:
+                wait = delay
+            time.sleep(wait + random.random())
+            delay *= 2
+            continue
+        return r
+    return r
 
 
 class CloudflareImageProvider:
@@ -78,19 +114,35 @@ class CloudflareImageProvider:
 
 
 class MetaImageProvider:
-    """Muse Image / Muse Wonder on the Meta Model API.
-
-    TODO: fill in once Meta credits land and we read the image docs.
-    Until then it raises, so the router falls back to the free renderer.
-    """
+    """Muse Image on the Meta Model API ($0.01 per image).
+    Generate: POST /images/generations. Edit (redraw a given picture): POST /images/edits."""
 
     name = "meta-image"
 
     def __init__(self, s: Settings):
         self.s = s
 
-    def render(self, prompt: str) -> bytes:
-        raise ProviderError("meta-image: not wired yet")
+    def render(self, prompt: str, image_bytes: bytes | None = None) -> bytes:
+        if not self.s.meta_api_key:
+            raise ProviderError("meta-image: no key")
+        body = {"model": self.s.meta_image_model, "prompt": prompt, "n": 1,
+                "response_format": "b64_json", "output_format": "png",
+                "tool_enablement": {"enable_image_search": False, "enable_web_search": False,
+                                    "enable_shell": False}}
+        path = "images/generations"
+        if image_bytes is not None:
+            path = "images/edits"
+            body["images"] = [{"image_url": "data:image/png;base64," + base64.b64encode(image_bytes).decode()}]
+        else:
+            body["size"] = "1536x1024"
+        r = _post_with_retry("meta-image", f"{self.s.meta_base_url.rstrip('/')}/{path}", body,
+                             {"Authorization": f"Bearer {self.s.meta_api_key}"}, max(self.s.request_timeout, 180))
+        if r.status_code >= 400:
+            raise ProviderError(f"meta-image: HTTP {r.status_code} {r.text[:300]}")
+        try:
+            return base64.b64decode(r.json()["data"][0]["b64_json"])
+        except (KeyError, IndexError, ValueError) as e:
+            raise ProviderError(f"meta-image: bad response {r.text[:200]}") from e
 
 
 class MockProvider:
@@ -117,14 +169,17 @@ def build_chat_providers(s: Settings) -> dict[str, object]:
                f"{s.cloudflare_account_id}/ai/v1")
     return {
         "meta": OpenAICompatProvider("meta", s.meta_base_url, s.meta_api_key,
-                                     s.meta_chat_model, s.meta_chat_model, s.request_timeout),
+                                     s.meta_chat_model, s.meta_chat_model, s.request_timeout,
+                                     send_temperature=False),
+        # Baseten's Muse Spark Open has no JSON mode (per Baseten's docs); the prompt asks for JSON
         "baseten": OpenAICompatProvider("baseten", s.baseten_base_url, s.baseten_api_key,
-                                        s.baseten_model, s.baseten_model, s.request_timeout),
+                                        s.baseten_model, s.baseten_model, s.request_timeout,
+                                        json_format=False),
         "cloudflare": OpenAICompatProvider("cloudflare", cf_base, s.cloudflare_api_token,
                                            s.cloudflare_chat_model, s.cloudflare_vision_model,
                                            s.request_timeout),
         "groq": OpenAICompatProvider("groq", s.groq_base_url, s.groq_api_key,
-                                     s.groq_model, s.groq_model, s.request_timeout),
+                                     s.groq_model, s.groq_model, s.request_timeout, max_tokens=900),
         "gemini": OpenAICompatProvider("gemini", s.gemini_base_url, s.gemini_api_key,
                                        s.gemini_model, s.gemini_model, s.request_timeout,
                                        json_format=False),

@@ -123,3 +123,84 @@ def test_keyless_voters_are_skipped_and_gemini_gets_no_response_format(tmp_path)
                              gemini_api_key="k"))
     assert r.vision_chain() == ["ollama", "gemini"]       # cloudflare and groq have no keys
     assert r.chat_providers["gemini"].json_format is False
+
+
+def test_groq_caps_output_tokens(tmp_path):
+    r = ModelRouter(Settings(mode="local", cache_dir=tmp_path, _env_file=None, groq_api_key="k"))
+    assert r.chat_providers["groq"].max_tokens == 900
+    assert r.chat_providers["cloudflare"].max_tokens is None
+
+
+class FakeResp:
+    def __init__(self, status, data=None, headers=None):
+        self.status_code, self._data, self.headers = status, data or {}, headers or {}
+        self.text = str(self._data)
+
+    def json(self):
+        return self._data
+
+
+def test_meta_gets_no_temperature_and_429_is_retried(tmp_path, monkeypatch):
+    import httpx
+    from app.router import providers
+    calls = []
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        calls.append(json)
+        if len(calls) == 1:
+            return FakeResp(429, headers={"retry-after": "0"})
+        return FakeResp(200, {"choices": [{"message": {"content": '{"ok": 1}'}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    r = ModelRouter(Settings(mode="prod", cache_dir=tmp_path, _env_file=None, meta_api_key="k"))
+    assert r.ask_json("q") == {"ok": 1} and r.last_provider == "meta"
+    assert len(calls) == 2 and "temperature" not in calls[0]
+
+
+def test_400_is_not_retried(tmp_path, monkeypatch):
+    import httpx
+    calls = []
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: calls.append(1) or FakeResp(400, {"error": "bad"}))
+    p = ModelRouter(Settings(mode="prod", cache_dir=tmp_path, _env_file=None, meta_api_key="k")).chat_providers["meta"]
+    with pytest.raises(ProviderError):
+        p.chat([{"role": "user", "content": "q"}])
+    assert len(calls) == 1
+
+
+def test_prod_vision_vote_is_meta_only_when_meta_answers(tmp_path):
+    r = ModelRouter(Settings(mode="prod", cache_dir=tmp_path, _env_file=None, meta_api_key="k",
+                             cloudflare_api_token="t", cloudflare_account_id="a"))
+    asked = []
+
+    class P:
+        def __init__(self, n):
+            self.name, self.ready = n, True
+
+        def chat(self, *a, **k):
+            asked.append(self.name)
+            return '{"tiles": []}'
+
+    r.chat_providers["meta"] = P("meta")
+    r.chat_providers["cloudflare"] = P("cloudflare")
+    assert list(r.see_each("q", b"x")) == ["meta"] and asked == ["meta"]
+
+
+def test_muse_image_request(tmp_path, monkeypatch):
+    import base64, httpx
+    sent = {}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        sent.update(url=url, body=json)
+        return FakeResp(200, {"data": [{"b64_json": base64.b64encode(b"PNG").decode()}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    r = ModelRouter(Settings(mode="prod", cache_dir=tmp_path, _env_file=None, meta_api_key="k"))
+    assert r.render("a calm bedroom", image_bytes=b"plan") == b"PNG"
+    assert sent["url"].endswith("/images/edits") and sent["body"]["model"] == "muse-image-1.0"
+    assert sent["body"]["images"][0]["image_url"].startswith("data:image/png;base64,")
+
+
+def test_baseten_gets_no_json_mode(tmp_path):
+    r = ModelRouter(Settings(mode="prod", cache_dir=tmp_path, _env_file=None, baseten_api_key="k"))
+    assert r.chat_providers["baseten"].json_format is False

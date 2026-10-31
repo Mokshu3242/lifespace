@@ -1,0 +1,52 @@
+{
+  "pack": "home",
+  "note": "Widths are typical clear widths: a standard folding walker is about 25 in wide, a wheelchair about 30 in. A person needs this much open floor to pass.",
+  "personas": [
+    {"id": "parent", "name": "Asha", "about": "72, uses a walker, lives with family", "width_in": 25, "color": "#d6572f",
+     "home": "second bedroom",
+     "day": [
+       {"t": "06:30", "use": "wash", "note": "morning bathroom"},
+       {"t": "07:15", "use": "cook", "note": "makes tea"},
+       {"t": "07:30", "use": "eat", "note": "breakfast"},
+       {"t": "09:00", "use": "sit", "note": "reads in the living room"},
+       {"t": "11:00", "use": "outdoor", "note": "fresh air on the terrace"},
+       {"t": "13:00", "use": "eat", "note": "lunch"},
+       {"t": "14:00", "use": "sleep", "note": "afternoon rest"},
+       {"t": "19:00", "use": "eat", "note": "dinner"},
+       {"t": "21:30", "use": "wash", "note": "evening bathroom"},
+       {"t": "22:00", "use": "sleep", "note": "bed"},
+       {"t": "02:00", "use": "wash", "note": "night bathroom trip"},
+       {"t": "02:10", "use": "sleep", "note": "back to bed"}
+     ]},
+    {"id": "child", "name": "Kabir", "about": "9, plays all over the home", "width_in": 16, "color": "#2f7fd6",
+     "home": "second bedroom",
+     "day": [
+       {"t": "07:00", "use": "wash", "note": "brushes teeth"},
+       {"t": "07:20", "use": "eat", "note": "breakfast"},
+       {"t": "07:45", "use": "exit", "note": "leaves for school"},
+       {"t": "15:30", "use": "enter", "note": "home from school"},
+       {"t": "15:45", "use": "eat", "note": "snack"},
+       {"t": "16:00", "use": "work", "note": "homework"},
+       {"t": "17:30", "use": "sit", "note": "plays in the living room"},
+       {"t": "19:00", "use": "eat", "note": "dinner"},
+       {"t": "20:30", "use": "wash", "note": "bath"},
+       {"t": "21:00", "use": "sleep", "note": "bed"}
+     ]},
+    {"id": "adult", "name": "Meera", "about": "41, works from home", "width_in": 22, "color": "#2f9e6b",
+     "home": "master bedroom",
+     "day": [
+       {"t": "06:45", "use": "wash", "note": "shower"},
+       {"t": "07:10", "use": "cook", "note": "makes breakfast"},
+       {"t": "07:30", "use": "eat", "note": "breakfast with family"},
+       {"t": "08:30", "use": "work", "note": "work from home"},
+       {"t": "12:30", "use": "cook", "note": "lunch"},
+       {"t": "13:30", "use": "work", "note": "back to work"},
+       {"t": "18:00", "use": "exit", "note": "groceries"},
+       {"t": "18:40", "use": "enter", "note": "back home"},
+       {"t": "18:45", "use": "cook", "note": "cooks dinner"},
+       {"t": "19:00", "use": "eat", "note": "dinner"},
+       {"t": "20:30", "use": "sit", "note": "relaxes"},
+       {"t": "22:30", "use": "sleep", "note": "bed"}
+     ]}
+  ]
+}
