@@ -95,3 +95,43 @@ def save_space(space_id: str, edit: MapEdit):
         current["items"] = edit.items
     p.write_text(json.dumps(current))
     return current
+
+
+class RedesignAsk(BaseModel):
+    budget: float = 1000
+    goals: str = ""
+
+
+@router.post("/{space_id}/designs")
+def create_design(space_id: str, ask: RedesignAsk):
+    """Redesign the saved map with real catalog items inside a budget. Each run is a new version."""
+    from app.space.reader import context_line
+    from app.space.redesign import redesign
+
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    if not 50 <= ask.budget <= 100_000:
+        raise HTTPException(400, "Budget must be between $50 and $100,000")
+    space = json.loads(p.read_text())
+    goals = " ".join(ask.goals.split())[:300]
+    try:
+        design = redesign(space, ask.budget, goals, get_router(),
+                          context_line(space.get("pack") or "home", space.get("describe") or ""))
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Models are unavailable: {e}")
+    folder = p.parent / "designs"
+    folder.mkdir(exist_ok=True)
+    n = len(list(folder.glob("*.json"))) + 1
+    out = {"id": n, "goals": goals, "provider": get_router().last_provider, **design.to_dict()}
+    (folder / f"{n}.json").write_text(json.dumps(out))
+    return out
+
+
+@router.get("/{space_id}/designs")
+def list_designs(space_id: str):
+    folder = _path(space_id, "designs")
+    if not folder.exists():
+        return []
+    files = sorted(folder.glob("*.json"), key=lambda f: int(f.stem))
+    return [json.loads(f.read_text()) for f in files]

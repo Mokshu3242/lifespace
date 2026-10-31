@@ -782,6 +782,345 @@
    "uses": [
     "safety"
    ]
+  },
+  {
+   "id": "wall-art",
+   "name": "Framed wall art",
+   "category": "decor",
+   "size_in": {
+    "w": 30,
+    "d": 2,
+    "h": 40
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "dining area",
+    "foyer",
+    "hallway"
+   ],
+   "uses": [
+    "comfort",
+    "style"
+   ]
+  },
+  {
+   "id": "mirror",
+   "name": "Full-length mirror",
+   "category": "decor",
+   "size_in": {
+    "w": 24,
+    "d": 2,
+    "h": 65
+   },
+   "price_usd": 120,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "foyer",
+    "hallway",
+    "bathroom"
+   ],
+   "uses": [
+    "style",
+    "light"
+   ]
+  },
+  {
+   "id": "curtains",
+   "name": "Linen curtains (pair)",
+   "category": "decor",
+   "size_in": {
+    "w": 100,
+    "d": 2,
+    "h": 84
+   },
+   "price_usd": 80,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "dining area"
+   ],
+   "uses": [
+    "comfort",
+    "style",
+    "quiet"
+   ]
+  },
+  {
+   "id": "pendant",
+   "name": "Pendant light (LED)",
+   "category": "light",
+   "size_in": {
+    "w": 16,
+    "d": 16,
+    "h": 0
+   },
+   "price_usd": 140,
+   "watts": 12,
+   "rooms": [
+    "dining area",
+    "kitchen",
+    "living room",
+    "foyer"
+   ],
+   "uses": [
+    "light",
+    "style"
+   ]
+  },
+  {
+   "id": "accent-chair",
+   "name": "Accent chair",
+   "category": "seat",
+   "size_in": {
+    "w": 28,
+    "d": 30,
+    "h": 32
+   },
+   "price_usd": 280,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "sit",
+    "style"
+   ]
+  },
+  {
+   "id": "shelves",
+   "name": "Floating wall shelves",
+   "category": "storage",
+   "size_in": {
+    "w": 36,
+    "d": 8,
+    "h": 2
+   },
+   "price_usd": 70,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "kitchen",
+    "dining area",
+    "hallway"
+   ],
+   "uses": [
+    "store",
+    "style"
+   ]
+  },
+  {
+   "id": "side-table-home",
+   "name": "Side table",
+   "category": "table",
+   "size_in": {
+    "w": 18,
+    "d": 18,
+    "h": 22
+   },
+   "price_usd": 80,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "place"
+   ]
+  },
+  {
+   "id": "bench-entry",
+   "name": "Entry bench with storage",
+   "category": "seat",
+   "size_in": {
+    "w": 40,
+    "d": 16,
+    "h": 18
+   },
+   "price_usd": 160,
+   "watts": 0,
+   "rooms": [
+    "foyer",
+    "hallway"
+   ],
+   "uses": [
+    "sit",
+    "store"
+   ]
+  },
+  {
+   "id": "sideboard",
+   "name": "Sideboard",
+   "category": "storage",
+   "size_in": {
+    "w": 60,
+    "d": 18,
+    "h": 32
+   },
+   "price_usd": 450,
+   "watts": 0,
+   "rooms": [
+    "dining area",
+    "living room"
+   ],
+   "uses": [
+    "store",
+    "style"
+   ]
+  },
+  {
+   "id": "smart-bulbs",
+   "name": "Smart LED bulbs (4 pack)",
+   "category": "light",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 0
+   },
+   "price_usd": 50,
+   "watts": 36,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "light",
+    "energy"
+   ]
+  },
+  {
+   "id": "blackout",
+   "name": "Blackout shades",
+   "category": "decor",
+   "size_in": {
+    "w": 60,
+    "d": 2,
+    "h": 72
+   },
+   "price_usd": 90,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep",
+    "quiet"
+   ]
+  },
+  {
+   "id": "outdoor-chairs",
+   "name": "Outdoor chairs (pair)",
+   "category": "outdoor",
+   "size_in": {
+    "w": 48,
+    "d": 28,
+    "h": 32
+   },
+   "price_usd": 220,
+   "watts": 0,
+   "rooms": [
+    "terrace",
+    "balcony",
+    "patio",
+    "outdoor"
+   ],
+   "uses": [
+    "sit",
+    "rest"
+   ]
+  },
+  {
+   "id": "outdoor-table",
+   "name": "Outdoor bistro table",
+   "category": "outdoor",
+   "size_in": {
+    "w": 28,
+    "d": 28,
+    "h": 29
+   },
+   "price_usd": 120,
+   "watts": 0,
+   "rooms": [
+    "terrace",
+    "balcony",
+    "patio",
+    "outdoor"
+   ],
+   "uses": [
+    "eat",
+    "place"
+   ]
+  },
+  {
+   "id": "outdoor-sofa",
+   "name": "Outdoor loveseat",
+   "category": "outdoor",
+   "size_in": {
+    "w": 54,
+    "d": 30,
+    "h": 30
+   },
+   "price_usd": 450,
+   "watts": 0,
+   "rooms": [
+    "terrace",
+    "balcony",
+    "patio",
+    "outdoor"
+   ],
+   "uses": [
+    "sit",
+    "rest"
+   ]
+  },
+  {
+   "id": "planter",
+   "name": "Large outdoor planter",
+   "category": "outdoor",
+   "size_in": {
+    "w": 20,
+    "d": 20,
+    "h": 24
+   },
+   "price_usd": 80,
+   "watts": 0,
+   "rooms": [
+    "terrace",
+    "balcony",
+    "patio",
+    "outdoor"
+   ],
+   "uses": [
+    "comfort",
+    "air"
+   ]
+  },
+  {
+   "id": "string-lights",
+   "name": "Outdoor string lights",
+   "category": "outdoor",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 0
+   },
+   "price_usd": 40,
+   "watts": 10,
+   "rooms": [
+    "terrace",
+    "balcony",
+    "patio",
+    "outdoor"
+   ],
+   "uses": [
+    "light",
+    "style"
+   ]
   }
  ]
 }

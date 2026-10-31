@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import PlanCanvas from './PlanCanvas'
 import { api } from './api'
-import { CODES, KIND_LABEL, areaSqft, roomColor } from './mapStyle'
+import { CODES, KIND_LABEL, areaSqft, isMeta, modelLabel, roomColor } from './mapStyle'
+import RedesignPanel from './RedesignPanel'
 
 const SOURCE_LABEL = {
   printed: 'Name read from the plan',
@@ -32,6 +33,8 @@ export default function PlanEditor({ space, onReset }) {
   const [selectedItem, setSelectedItem] = useState(null)
   const [tab, setTab] = useState('rooms')
   const [catalog, setCatalog] = useState([])
+  const [design, setDesign] = useState(null)
+  const [showAfter, setShowAfter] = useState(true)
   const [tool, setTool] = useState('select')
   const [showPlan, setShowPlan] = useState(true)
   const [planImage, setPlanImage] = useState(null)
@@ -159,12 +162,16 @@ export default function PlanEditor({ space, onReset }) {
         <div className="canvas-wrap">
           <PlanCanvas space={space} grid={grid} rooms={rooms} entrance={entrance}
             selectedId={selectedId} showPlan={showPlan} planImage={planImage} onPaint={paint}
-            items={items} selectedItem={selectedItem} />
+            items={tab === 'redesign' && design
+              ? (showAfter ? design.items.filter((it) => it.status === 'kept' || it.status === 'new') : items)
+              : items}
+            selectedItem={selectedItem} />
         </div>
         <p className="meta">
           {space.width_ft} × {space.height_ft} ft · 1 cell = {space.cell_in} in · scale {space.px_per_ft} px/ft
-          ({space.scale_source}) · read by {space.provider}
+          ({space.scale_source})
         </p>
+        <p className={isMeta(space.provider) ? 'powered meta' : 'powered'}>Plan read by {modelLabel(space.provider)}</p>
       </div>
 
       <aside className="sidebar">
@@ -173,8 +180,13 @@ export default function PlanEditor({ space, onReset }) {
             onClick={() => setTab('rooms')}>Rooms ({rooms.length})</button>
           <button role="tab" aria-selected={tab === 'items'} className={tab === 'items' ? 'on' : ''}
             onClick={() => setTab('items')}>Items ({items.length})</button>
+          <button role="tab" aria-selected={tab === 'redesign'} className={tab === 'redesign' ? 'on' : ''}
+            onClick={() => setTab('redesign')}>Redesign</button>
         </div>
-        {tab === 'items' ? (
+        {tab === 'redesign' ? (
+          <RedesignPanel space={space} dirty={dirty} design={design} onDesign={setDesign}
+            showAfter={showAfter} onShowAfter={setShowAfter} rooms={rooms} />
+        ) : tab === 'items' ? (
           <>
             {item ? (
               <div className="room-edit">

@@ -417,8 +417,10 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         chairs = chair_scale(blocked)
         if chairs and abs(chairs[0] - px_per_ft) > 0.05 * chairs[0]:
             px_per_ft = chairs[0]
+            warnings[-1] = f"No printed sizes on the plan. Scale was measured from {chairs[1]} chairs; check it."
             scale_source = (f"measured from {chairs[1]} chairs (about {CHAIR_IN} in each); the model "
                             f"guessed {width_ft_hint:.0f} ft wide")
+            warnings[-1] = f"No printed sizes on the plan. Scale was measured from {chairs[1]} chairs; check it."
         # Sanity check: only catch an estimate that is clearly broken. Offices split into many
         # small spaces (booths, desk pods), so a 50 sq ft middle room is normal there.
         by_name: dict[str, int] = {}

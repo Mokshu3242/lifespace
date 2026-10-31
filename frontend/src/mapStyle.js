@@ -17,3 +17,25 @@ export function areaSqft(grid, id, cellIn) {
   for (const row of grid) for (const v of row) if (v === id) n++
   return Math.round(n * (cellIn / 12) ** 2 * 10) / 10
 }
+
+// Which model did a step, in words a judge understands
+const MODEL_LABEL = {
+  meta: 'Meta Muse Spark 1.3',
+  baseten: 'Meta Muse Spark Open',
+  'meta-image': 'Meta Muse Image',
+  cloudflare: 'Llama 4 Scout (Cloudflare)',
+  ollama: 'Qwen 2.5 VL (local)',
+  groq: 'Qwen (Groq)',
+  gemini: 'Gemini (local test)',
+  mock: 'mock model',
+}
+
+export function modelLabel(provider) {
+  if (!provider) return 'unknown model'
+  const base = provider.replace(' (cache)', '')
+  return (MODEL_LABEL[base] || base) + (provider.endsWith('(cache)') ? ' · saved answer' : '')
+}
+
+export function isMeta(provider) {
+  return Boolean(provider) && (provider.startsWith('meta') || provider.startsWith('baseten'))
+}

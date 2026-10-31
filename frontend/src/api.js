@@ -14,6 +14,13 @@ export const api = {
     return fetch(`/api/spaces?${q}`, { method: 'POST', body }).then(handle)
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
+  redesign: (id, budget, goals) =>
+    fetch(`/api/spaces/${id}/designs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ budget, goals }),
+    }).then(handle),
+  designs: (id) => fetch(`/api/spaces/${id}/designs`).then(handle),
   catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
   saveSpace: (id, { grid, rooms, entrance, items }) =>
     fetch(`/api/spaces/${id}`, {

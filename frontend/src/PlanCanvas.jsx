@@ -85,12 +85,19 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
     for (const it of items) {
       const x = (it.x - it.w / 2) * S, y = (it.y - it.d / 2) * S
       const on = it.id === selectedItem
-      ctx.setLineDash(on ? [] : [4, 3])
-      ctx.lineWidth = on ? 3 : 1.5
-      ctx.strokeStyle = on ? '#1f7a5a' : it.unsure ? '#b7791f' : '#2f5d8a'
+      const isNew = it.status === 'new'
+      if (isNew) {
+        ctx.globalAlpha = 0.35
+        ctx.fillStyle = '#2f9e6b'
+        ctx.fillRect(x, y, it.w * S, it.d * S)
+        ctx.globalAlpha = 1
+      }
+      ctx.setLineDash(on || isNew ? [] : [4, 3])
+      ctx.lineWidth = on ? 3 : isNew ? 2.5 : 1.5
+      ctx.strokeStyle = on ? '#1f7a5a' : isNew ? '#1f7a4d' : it.unsure ? '#b7791f' : '#2f5d8a'
       ctx.strokeRect(x, y, it.w * S, it.d * S)
       ctx.setLineDash([])
-      if (on || it.w * S > 40) {
+      if (on || isNew || it.w * S > 40) {
         const label = shortName(it.name)
         ctx.lineWidth = 3
         ctx.strokeStyle = 'rgba(255,255,255,0.9)'

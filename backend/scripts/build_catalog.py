@@ -48,6 +48,24 @@ HOME = [
     ("grab-bar", "Bathroom grab bar", "safety", 24, 3, 3, 35, 0, "bathroom", "safety"),
     ("night-light", "Motion night light", "safety", 3, 2, 3, 15, 1, "hallway,bathroom,bedroom", "light,safety"),
     ("smoke-alarm", "Smoke alarm", "safety", 6, 6, 2, 25, 0, "*", "safety"),
+    # style and comfort
+    ("wall-art", "Framed wall art", "decor", 30, 2, 40, 90, 0, "living room,bedroom,dining area,foyer,hallway", "comfort,style"),
+    ("mirror", "Full-length mirror", "decor", 24, 2, 65, 120, 0, "bedroom,foyer,hallway,bathroom", "style,light"),
+    ("curtains", "Linen curtains (pair)", "decor", 100, 2, 84, 80, 0, "living room,bedroom,dining area", "comfort,style,quiet"),
+    ("pendant", "Pendant light (LED)", "light", 16, 16, 0, 140, 12, "dining area,kitchen,living room,foyer", "light,style"),
+    ("accent-chair", "Accent chair", "seat", 28, 30, 32, 280, 0, "living room,bedroom", "sit,style"),
+    ("shelves", "Floating wall shelves", "storage", 36, 8, 2, 70, 0, "living room,bedroom,kitchen,dining area,hallway", "store,style"),
+    ("side-table-home", "Side table", "table", 18, 18, 22, 80, 0, "living room,bedroom", "place"),
+    ("bench-entry", "Entry bench with storage", "seat", 40, 16, 18, 160, 0, "foyer,hallway", "sit,store"),
+    ("sideboard", "Sideboard", "storage", 60, 18, 32, 450, 0, "dining area,living room", "store,style"),
+    ("smart-bulbs", "Smart LED bulbs (4 pack)", "light", 3, 3, 0, 50, 36, "*", "light,energy"),
+    ("blackout", "Blackout shades", "decor", 60, 2, 72, 90, 0, "bedroom", "sleep,quiet"),
+    # outdoor
+    ("outdoor-chairs", "Outdoor chairs (pair)", "outdoor", 48, 28, 32, 220, 0, "terrace,balcony,patio,outdoor", "sit,rest"),
+    ("outdoor-table", "Outdoor bistro table", "outdoor", 28, 28, 29, 120, 0, "terrace,balcony,patio,outdoor", "eat,place"),
+    ("outdoor-sofa", "Outdoor loveseat", "outdoor", 54, 30, 30, 450, 0, "terrace,balcony,patio,outdoor", "sit,rest"),
+    ("planter", "Large outdoor planter", "outdoor", 20, 20, 24, 80, 0, "terrace,balcony,patio,outdoor", "comfort,air"),
+    ("string-lights", "Outdoor string lights", "outdoor", 3, 3, 0, 40, 10, "terrace,balcony,patio,outdoor", "light,style"),
 ]
 
 OFFICE = [
@@ -90,6 +108,10 @@ OFFICE = [
     ("plant-office", "Large potted plant", "decor", 18, 18, 60, 120, 0, "*", "comfort"),
     ("first-aid", "First aid cabinet", "safety", 15, 6, 20, 80, 0, "pantry,hallway", "safety"),
     ("extinguisher", "Fire extinguisher", "safety", 8, 6, 20, 60, 0, "hallway,pantry", "safety"),
+    ("wall-art-office", "Framed wall art", "decor", 36, 2, 48, 120, 0, "*", "comfort,style"),
+    ("pendant-office", "Pendant light (LED)", "light", 20, 20, 0, 180, 15, "meeting room,pantry,reception,lounge", "light,style"),
+    ("moss-wall", "Preserved moss wall panel", "noise", 24, 2, 24, 200, 0, "*", "quiet,style,comfort"),
+    ("rug-office", "Area rug 6x9", "decor", 72, 108, 0, 250, 0, "lounge,reception,office", "comfort,quiet"),
     ("toilet-office", "Toilet", "fixture", 15, 28, 30, 250, 0, "restroom", "wash"),
     ("sink-office", "Wall sink", "fixture", 20, 18, 34, 250, 0, "restroom,pantry", "wash"),
 ]

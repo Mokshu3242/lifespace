@@ -90,3 +90,26 @@ button.ghost { background: transparent; color: var(--ink); border: 1px solid var
 .room-edit select { width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
 button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
+.redesign textarea { width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 8px; resize: vertical;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.redesign .room-edit label { display: block; margin-bottom: 8px; }
+.redesign .room-edit button { margin-top: 4px; }
+.versions { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+.before-after { margin-top: 12px; }
+.summary { font-size: 0.9rem; margin: 8px 0; }
+.spend .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.spend .bar span { display: block; height: 100%; background: var(--accent); }
+.changes { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
+.changes li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.88rem; }
+.act { font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; flex: none; margin-top: 2px; color: #fff; }
+.act.add { background: #2f9e6b; }
+.act.replace { background: #2f5d8a; }
+.act.remove { background: #b54848; }
+.dropped { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+.dropped ul { padding-left: 18px; margin: 6px 0; }
+.tabs button { font-size: 0.85rem; }
+.tabs button { white-space: nowrap; padding: 6px 4px; }
+
+.powered { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); margin: 6px 0; }
+.powered.meta { border-color: #4a7bd8; color: #4a7bd8; font-weight: 600; }
