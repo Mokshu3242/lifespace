@@ -65,23 +65,10 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       }
     }
 
-    // room names at the middle of each room
-    ctx.font = `600 ${Math.min(15, Math.max(11, S * 1.6))}px system-ui, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    for (const room of rooms) {
-      const pos = centerOf(grid, room.id)
-      if (!pos) continue
-      const [cx, cy] = pos
-      ctx.lineWidth = 3
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)'
-      ctx.strokeText(room.name, (cx + 0.5) * S, (cy + 0.5) * S)
-      ctx.fillStyle = '#1d2320'
-      ctx.fillText(room.name, (cx + 0.5) * S, (cy + 0.5) * S)
-    }
-
     // furniture already on the plan: dashed boxes with short names
     ctx.font = `600 ${Math.min(12, Math.max(9, S * 1.2))}px system-ui, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
     for (const it of items) {
       const x = (it.x - it.w / 2) * S, y = (it.y - it.d / 2) * S
       const on = it.id === selectedItem
@@ -97,13 +84,22 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.strokeStyle = on ? '#1f7a5a' : isNew ? '#1f7a4d' : it.unsure ? '#b7791f' : '#2f5d8a'
       ctx.strokeRect(x, y, it.w * S, it.d * S)
       ctx.setLineDash([])
-      if (on || isNew || it.w * S > 40) {
-        const label = shortName(it.name)
-        ctx.lineWidth = 3
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-        ctx.strokeText(label, it.x * S, it.y * S)
-        ctx.fillStyle = '#1d3b5a'
-        ctx.fillText(label, it.x * S, it.y * S)
+      if (isNew && it.w * S < 14) {
+        ctx.fillStyle = '#1f7a4d'
+        ctx.beginPath()
+        ctx.arc(it.x * S, it.y * S, Math.max(4, S * 0.6), 0, Math.PI * 2)
+        ctx.fill()
+      }
+      const label = shortName(it.name)
+      if (on || ctx.measureText(label).width + 4 <= it.w * S) {
+        if (on) pill(ctx, label, it.x * S, (it.y - it.d / 2) * S - 10, '#1f7a5a', '#fff')
+        else {
+          ctx.lineWidth = 3
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+          ctx.strokeText(label, it.x * S, it.y * S)
+          ctx.fillStyle = '#1d3b5a'
+          ctx.fillText(label, it.x * S, it.y * S)
+        }
       }
     }
 
@@ -113,6 +109,21 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.beginPath()
       ctx.arc((ec + 0.5) * S, (er + 0.5) * S, Math.max(5, S), 0, Math.PI * 2)
       ctx.fill()
+    }
+    // room names last, on a light pill, so furniture never covers them.
+    // A name that doesn't fit its room is shortened to its last word, or left out.
+    ctx.font = `600 ${Math.min(14, Math.max(10, S * 1.5))}px system-ui, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    for (const room of rooms) {
+      const pos = centerOf(grid, room.id)
+      if (!pos) continue
+      const [cx, cy] = pos
+      const span = rowSpan(grid, room.id, cx, cy) * S
+      let label = room.name
+      if (ctx.measureText(label).width + 10 > span) label = label.split(' ').slice(-1)[0]
+      if (ctx.measureText(label).width + 10 > span && room.id !== selectedId) continue
+      pill(ctx, label, (cx + 0.5) * S, (cy + 0.5) * S, 'rgba(255,255,255,0.88)', '#1d2320')
     }
   }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem])
 
@@ -147,6 +158,27 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       onPointerCancel={() => { dragging.current = false }}
     />
   )
+}
+
+function pill(ctx, text, x, y, bg, fg) {
+  const w = ctx.measureText(text).width + 12
+  const h = 18
+  ctx.fillStyle = bg
+  ctx.beginPath()
+  if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, 9)
+  else ctx.rect(x - w / 2, y - h / 2, w, h)
+  ctx.fill()
+  ctx.fillStyle = fg
+  ctx.fillText(text, x, y + 0.5)
+}
+
+// how many cells wide a room is along the row through (c, r)
+function rowSpan(grid, id, c, r) {
+  const row = grid[r]
+  let a = c, b = c
+  while (a > 0 && row[a - 1] === id) a--
+  while (b < row.length - 1 && row[b + 1] === id) b++
+  return b - a + 1
 }
 
 function shortName(name) {

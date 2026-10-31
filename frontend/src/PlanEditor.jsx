@@ -153,6 +153,12 @@ export default function PlanEditor({ space, onReset }) {
             </button>
           ))}
           <button className="tool" onClick={undo} disabled={!history.current.length}>Undo</button>
+          {tab === 'redesign' && design && (
+            <div className="tabs before-after on-map">
+              <button className={!showAfter ? 'on' : ''} onClick={() => setShowAfter(false)}>Before</button>
+              <button className={showAfter ? 'on' : ''} onClick={() => setShowAfter(true)}>After</button>
+            </div>
+          )}
           <label className="toggle">
             <input type="checkbox" checked={showPlan} onChange={(e) => setShowPlan(e.target.checked)} />
             Show plan
@@ -185,7 +191,7 @@ export default function PlanEditor({ space, onReset }) {
         </div>
         {tab === 'redesign' ? (
           <RedesignPanel space={space} dirty={dirty} design={design} onDesign={setDesign}
-            showAfter={showAfter} onShowAfter={setShowAfter} rooms={rooms} />
+            onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} />
         ) : tab === 'items' ? (
           <>
             {item ? (

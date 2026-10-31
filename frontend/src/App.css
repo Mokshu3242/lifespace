@@ -113,3 +113,14 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .powered { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px;
   border: 1px solid var(--line); color: var(--muted); margin: 6px 0; }
 .powered.meta { border-color: #4a7bd8; color: #4a7bd8; font-weight: 600; }
+
+.before-after.on-map { margin: 0 0 0 auto; padding: 3px; }
+.before-after.on-map button { padding: 6px 18px; font-size: 0.9rem; font-weight: 600; }
+.new-design summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.spend .bar span.over { background: var(--bad); }
+.spent { font-size: 1.05rem; margin: 6px 0 0; }
+.changes li.change { padding: 6px 8px; border-left: 3px solid var(--line); border-radius: 4px; cursor: default; }
+.changes li.change.add { border-left-color: #2f9e6b; }
+.changes li.change.replace { border-left-color: #2f5d8a; }
+.changes li.change.remove { border-left-color: #b54848; }
+.changes li.change:hover { background: var(--bg); }

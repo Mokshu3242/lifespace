@@ -5,7 +5,7 @@ import { isMeta, modelLabel } from './mapStyle'
 const ACTION = { add: 'Add', replace: 'Replace', remove: 'Remove' }
 
 /** Ask for a redesign inside a budget, then show what changed and why. */
-export default function RedesignPanel({ space, dirty, design, onDesign, showAfter, onShowAfter, rooms }) {
+export default function RedesignPanel({ space, dirty, design, onDesign, onShowAfter, rooms, onHover }) {
   const [budget, setBudget] = useState(1000)
   const [goals, setGoals] = useState('')
   const [busy, setBusy] = useState(false)
@@ -40,6 +40,8 @@ export default function RedesignPanel({ space, dirty, design, onDesign, showAfte
 
   return (
     <div className="redesign">
+      <details className="new-design" open={!design}>
+      <summary>{design ? 'New redesign' : 'Redesign this space'}</summary>
       <div className="room-edit">
         <label>Budget (USD)
           <input type="number" min={50} max={100000} step={50} value={budget}
@@ -53,6 +55,7 @@ export default function RedesignPanel({ space, dirty, design, onDesign, showAfte
         <button onClick={run} disabled={busy || dirty}>{busy ? 'Designing…' : 'Redesign'}</button>
         {error && <p className="bad">{error}</p>}
       </div>
+      </details>
 
       {versions.length > 1 && (
         <div className="versions">
@@ -66,19 +69,18 @@ export default function RedesignPanel({ space, dirty, design, onDesign, showAfte
 
       {design && (
         <>
-          <div className="tabs before-after">
-            <button className={!showAfter ? 'on' : ''} onClick={() => onShowAfter(false)}>Before</button>
-            <button className={showAfter ? 'on' : ''} onClick={() => onShowAfter(true)}>After</button>
-          </div>
           {design.summary && <p className="summary">{design.summary}</p>}
           <p className={isMeta(design.provider) ? 'powered meta' : 'powered'}>Designed by {modelLabel(design.provider)} · checked by code</p>
           <div className="spend">
-            <div className="bar"><span style={{ width: `${Math.min(100, (design.spent_usd / design.budget_usd) * 100)}%` }} /></div>
-            <p className="meta">${design.spent_usd.toLocaleString()} of ${design.budget_usd.toLocaleString()} · {kept.length} changes</p>
+            <div className="bar"><span className={design.spent_usd > design.budget_usd ? 'over' : ''}
+              style={{ width: `${Math.min(100, (design.spent_usd / design.budget_usd) * 100)}%` }} /></div>
+            <p className="spent"><strong>${design.spent_usd.toLocaleString()}</strong> of ${design.budget_usd.toLocaleString()}
+              <span className="meta"> · {kept.length} changes</span></p>
           </div>
           <ul className="changes">
             {kept.map((c, i) => (
-              <li key={i}>
+              <li key={i} className={`change ${c.action}`}
+                onMouseEnter={() => c.placed && onHover(c.placed.id)} onMouseLeave={() => onHover(null)}>
                 <span className={`act ${c.action}`}>{ACTION[c.action]}</span>
                 <div>
                   <strong>{c.name}</strong> <span className="meta">in {roomName(c.room)}{c.cost_usd ? ` · $${c.cost_usd}` : ''}</span>
