@@ -73,10 +73,32 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       const x = (it.x - it.w / 2) * S, y = (it.y - it.d / 2) * S
       const on = it.id === selectedItem
       const isNew = it.status === 'new'
+      if (it.status === 'removed' || it.status === 'replaced') {
+        // taken out by the redesign: red, crossed out
+        ctx.setLineDash([4, 3])
+        ctx.lineWidth = 2
+        ctx.strokeStyle = '#c0392b'
+        ctx.strokeRect(x, y, it.w * S, it.d * S)
+        ctx.setLineDash([])
+        ctx.beginPath()
+        ctx.moveTo(x, y); ctx.lineTo(x + it.w * S, y + it.d * S)
+        ctx.moveTo(x + it.w * S, y); ctx.lineTo(x, y + it.d * S)
+        ctx.stroke()
+        continue
+      }
       if (isNew) {
         ctx.globalAlpha = 0.35
         ctx.fillStyle = '#2f9e6b'
         ctx.fillRect(x, y, it.w * S, it.d * S)
+        ctx.globalAlpha = 1
+      }
+      if (on && isNew) {
+        // the item just placed: a soft halo so the eye finds it
+        ctx.globalAlpha = 0.25
+        ctx.fillStyle = '#2f9e6b'
+        ctx.beginPath()
+        ctx.arc(it.x * S, it.y * S, Math.max(it.w, it.d) * S * 0.75 + 10, 0, Math.PI * 2)
+        ctx.fill()
         ctx.globalAlpha = 1
       }
       ctx.setLineDash(on || isNew ? [] : [4, 3])

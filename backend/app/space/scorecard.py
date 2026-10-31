@@ -66,7 +66,7 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
         blocked = sum(d["blocked"] for d in days.values())
         tight = sum(d["tight_ft"] for d in days.values())
         out["movement"] = {"score": _clamp(np.mean(parts)),
-                           "why": (f"{blocked} trips can't be made; " if blocked else "Every trip can be made; ")
+                           "why": (f"{blocked} trip{'s' if blocked != 1 else ''} can't be made; " if blocked else "Every trip can be made; ")
                            + f"{tight:.0f} ft of tight squeezes across the day"}
 
     # ---- access: walker or wheelchair reach + turning space

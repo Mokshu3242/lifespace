@@ -80,7 +80,7 @@ def test_read_floor_plan_end_to_end_with_fake_models(monkeypatch):
     from app.space.reader import read_floor_plan
     import cv2
 
-    monkeypatch.setattr(ocr, "read_texts", lambda gray: [])
+    monkeypatch.setattr(ocr, "read_all", lambda gray: [])
 
     class FakeRouter:
         def see_each(self, prompt, png, *a, **k):
@@ -108,3 +108,10 @@ def test_chair_scale_from_repeated_chairs():
     ppf, n = chair_scale(m)
     assert n == 6 and abs(ppf - 12) < 0.5
     assert chair_scale(m[:, :150]) is None  # only 2 chairs: not enough to trust
+
+
+def test_entrance_label_is_found_but_never_a_room_name():
+    from app.space.ocr import Text, _is_name, entrance_marks
+    texts = [Text("Entrance", 10, 10, 0.9, False), Text("FOYER", 5, 5, 0.9, False), Text("6'0 x 6'3", 5, 7, 0.9, True)]
+    assert [t.text for t in entrance_marks(texts)] == ["Entrance"]
+    assert not _is_name("Entrance")

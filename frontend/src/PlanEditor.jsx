@@ -37,6 +37,7 @@ export default function PlanEditor({ space, onReset }) {
   const [design, setDesign] = useState(null)
   const [showAfter, setShowAfter] = useState(true)
   const [sim, setSim] = useState(null)
+  const [liveItems, setLiveItems] = useState(null)   // items while the improve loop plays on the map
   const [playing, setPlaying] = useState(false)
   const [focus, setFocus] = useState(null)
   const [step, setStep] = useState(0)          // cells walked so far in the playback
@@ -216,9 +217,10 @@ export default function PlanEditor({ space, onReset }) {
           <PlanCanvas space={space} grid={grid} rooms={rooms} entrance={entrance}
             selectedId={selectedId} showPlan={showPlan} planImage={planImage} onPaint={paint}
             people={tab === 'people' ? people : []}
-            items={(tab === 'redesign' || tab === 'people') && design
-              ? (showAfter ? design.items.filter((it) => it.status === 'kept' || it.status === 'new') : items)
-              : items}
+            items={liveItems ? liveItems
+              : (tab === 'redesign' || tab === 'people') && design
+                ? (showAfter ? design.items : items)
+                : items}
             selectedItem={selectedItem} />
         </div>
         <p className="meta">
@@ -240,11 +242,11 @@ export default function PlanEditor({ space, onReset }) {
             onClick={() => setTab('people')}>People</button>
         </div>
         {tab === 'people' ? (
-          <PeoplePanel space={space} design={design} sim={sim} onSim={(s) => { setSim(s); setPlaying(true) }}
+          <PeoplePanel space={space} design={design} sim={sim} onSim={(s) => { setSim(s); setPlaying(Boolean(s)) }}
             showAfter={showAfter} playing={playing} onPlay={setPlaying} focus={focus} onFocus={setFocus} clock={clock} />
         ) : tab === 'redesign' ? (
           <RedesignPanel space={space} dirty={dirty} design={design} onDesign={setDesign}
-            onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} />
+            onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} onLive={setLiveItems} />
         ) : tab === 'items' ? (
           <>
             {item ? (

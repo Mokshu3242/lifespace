@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from './api'
 import { isMeta, modelLabel } from './mapStyle'
 import ScoreCard from './ScoreCard'
@@ -7,6 +7,33 @@ import ScoreCard from './ScoreCard'
 export default function PeoplePanel({ space, design, sim, onSim, showAfter, playing, onPlay, focus, onFocus, clock }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [family, setFamily] = useState(null)
+  const [text, setText] = useState('')
+  const [making, setMaking] = useState(false)
+
+  useEffect(() => {
+    api.family(space.id).then((f) => { if (f) { setFamily(f); setText(f.text) } }).catch(() => {})
+  }, [space.id])
+
+  async function makePeople() {
+    setMaking(true)
+    setError(null)
+    try {
+      const f = await api.describeFamily(space.id, text)
+      setFamily(f)
+      onSim(null)
+    } catch (e) {
+      setError(e.message)
+    }
+    setMaking(false)
+  }
+
+  async function useSamples() {
+    await api.resetFamily(space.id).catch(() => {})
+    setFamily(null)
+    setText('')
+    onSim(null)
+  }
 
   async function run() {
     setBusy(true)
@@ -26,6 +53,31 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
         Each person lives the same day Before and After{design ? ` Design ${design.id}` : ''}. Paths, distances
         and squeezes are measured on your plan.
       </p>
+      <div className="who">
+        <label>Who lives here?
+          <textarea rows={3} maxLength={600} value={text} onChange={(e) => setText(e.target.value)}
+            placeholder={space.pack === 'office'
+              ? 'Ravi uses a wheelchair, Lena started this week, Omar runs the team'
+              : 'My dad is 74 and uses a walker. My daughter is 6. I work from home.'} />
+        </label>
+        <div className="who-actions">
+          <button className="tool" onClick={makePeople} disabled={making || text.trim().length < 3}>
+            {making ? 'Meeting them…' : family ? 'Update people' : 'Make these people'}
+          </button>
+          {family && <button className="ghost small" onClick={useSamples}>Use sample people</button>}
+        </div>
+        {family && (
+          <>
+            <ul className="who-list">
+              {family.people.map((p) => (
+                <li key={p.id}><span className="dot" style={{ background: p.color }} /> <strong>{p.name}</strong> <span className="meta">{p.about} · needs {p.width_in} in to pass</span></li>
+              ))}
+            </ul>
+            {family.notes?.length > 0 && <p className="note">{family.notes.join(' · ')}</p>}
+            <p className={isMeta(family.provider) ? 'powered meta' : 'powered'}>People made by {modelLabel(family.provider)} · widths from standard sizes</p>
+          </>
+        )}
+      </div>
       <button onClick={run} disabled={busy}>{busy ? 'Living the day…' : sim ? 'Run again' : 'Run a day'}</button>
       {error && <p className="bad">{error}</p>}
 

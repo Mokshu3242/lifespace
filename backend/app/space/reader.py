@@ -723,7 +723,10 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     # 1) names and printed sizes: OCR first, then two models, then a referee if they disagree
     from app.space.naming import name_spaces
     regions = mark_regions(floor, marks)
-    labels = name_spaces(gray, marks, regions, router, context)
+    from app.space import ocr
+    all_texts = ocr.read_all(gray)          # read the plan's text once, for names and the entrance
+    labels = name_spaces(gray, marks, regions, router, context,
+                         texts=[t for t in all_texts if t.is_dims or ocr._is_name(t.text)])
 
     # 2) entrance and overall width: one look at the whole plan
     overview = router.see(OVERVIEW_PROMPT.format(context=context, n=len(marks)), draw_marks(gray, marks))
@@ -738,6 +741,27 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
         width_hint = None
 
     smap = build_space_map(gray, labels, None, width_hint, entrance_label=entrance_idx)
+
+    # 2b) a printed "Entrance" beats the model's guess: the door is the floor right next to that label
+    door = ocr.entrance_marks(all_texts)
+    if door:
+        g = np.array(smap.grid)
+        cell_px = smap.px_per_ft * smap.cell_in / 12
+        t = max(door, key=lambda t: t.conf)
+        tc, tr = t.x / cell_px, t.y / cell_px
+        # front doors open into a foyer, entry, hall or living area, not a bath or closet
+        def pick(room_ids):
+            ys, xs = np.nonzero(np.isin(g, list(room_ids)))
+            if not len(ys):
+                return None
+            d = (xs - tc) ** 2 + (ys - tr) ** 2
+            j = int(np.argmin(d))
+            return (int(xs[j]), int(ys[j])) if d[j] <= (12 * 12 / smap.cell_in) ** 2 else None
+        entry_like = {r.id for r in smap.rooms if any(w in r.name.lower() for w in ("foyer", "entry", "hall", "vestibule", "mud", "living", "lobby", "reception"))}
+        not_private = {r.id for r in smap.rooms if r.kind not in ("bath", "closet")}
+        spot = pick(entry_like) or pick(not_private) or pick({r.id for r in smap.rooms})
+        if spot:
+            smap.entrance = spot
     # 3) furniture already drawn on the plan, matched to real catalog items
     from app.space.items import detect_items, to_dicts
     smap.items = to_dicts(detect_items(gray, smap.grid, smap.rooms, smap.px_per_ft, smap.cell_in,

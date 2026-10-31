@@ -288,9 +288,9 @@ def live_a_day(floor: Floor, person: dict) -> Day:
 
 
 def simulate(space: dict, after_items: list[dict] | None, router=None, context: str = "",
-             changes: list[dict] | None = None) -> dict:
+             changes: list[dict] | None = None, people: list[dict] | None = None) -> dict:
     pack = space.get("pack") or "home"
-    people = load_personas(pack)
+    people = people or load_personas(pack)
     before_floor = Floor(space, space.get("items", []), pack)
     after_floor = Floor(space, after_items if after_items is not None else space.get("items", []), pack)
     out = {"personas": [{k: p[k] for k in ("id", "name", "about", "width_in", "color")} for p in people],

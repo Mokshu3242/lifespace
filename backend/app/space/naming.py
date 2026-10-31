@@ -81,13 +81,13 @@ def _size_word(regions: np.ndarray, i: int) -> str:
 
 
 def name_spaces(gray: np.ndarray, marks: list[tuple[int, int]], regions: np.ndarray,
-                router, context: str = "") -> list[Label]:
+                router, context: str = "", texts: list | None = None) -> list[Label]:
     n = len(marks)
 
     # ---- 1. printed text
     names_by_mark: dict[int, list[ocr.Text]] = {}
     dims_by_mark: dict[int, list[ocr.Text]] = {}
-    for t in ocr.read_texts(gray):
+    for t in (texts if texts is not None else ocr.read_texts(gray)):
         i = _owner_at(regions, t.x, t.y)
         if i < 0:
             continue

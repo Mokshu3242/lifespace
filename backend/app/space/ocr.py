@@ -102,7 +102,20 @@ def _ocr(img: np.ndarray) -> list[tuple[str, float, float, float]]:
     return out
 
 
+ENTRANCE_WORDS = ("entrance", "entry door", "main entry", "front door", "main door")
+
+
 def read_texts(gray: np.ndarray, min_conf: float = 0.6) -> list[Text]:
+    """Room names and printed sizes on the plan (labels like "oven" or "Entrance" left out)."""
+    return [t for t in read_all(gray, min_conf) if t.is_dims or _is_name(t.text)]
+
+
+def entrance_marks(texts: list[Text]) -> list[Text]:
+    """Where the plan prints "Entrance" (or "Entry door", "Front door")."""
+    return [t for t in texts if not t.is_dims and any(w in t.text.lower() for w in ENTRANCE_WORDS)]
+
+
+def read_all(gray: np.ndarray, min_conf: float = 0.6) -> list[Text]:
     """All text on the plan, upright and sideways, in the image's own pixel coordinates."""
     h0, w0 = gray.shape
     # small labels (WC, LC, CL) need more pixels than the working image has: read a 2x copy
@@ -135,7 +148,7 @@ def read_texts(gray: np.ndarray, min_conf: float = 0.6) -> list[Text]:
                 texts.append(Text(rest, x, y, c, False))   # e.g. "CL2'11" x 6'11""
         else:
             texts.append(Text(txt.strip(" :.-"), x, y, c, False))
-    return [t for t in texts if t.is_dims or _is_name(t.text)]
+    return texts
 
 
 def _is_name(txt: str) -> bool:

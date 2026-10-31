@@ -47,7 +47,7 @@ HOME = [
     ("shoe-rack", "Shoe rack", "storage", 30, 12, 20, 40, 0, "foyer,hallway,closet", "store"),
     ("grab-bar", "Bathroom grab bar", "safety", 24, 3, 3, 35, 0, "bathroom", "safety"),
     ("night-light", "Motion night light", "safety", 3, 2, 3, 15, 1, "hallway,bathroom,bedroom", "light,safety"),
-    ("smoke-alarm", "Smoke alarm", "safety", 6, 6, 2, 25, 0, "*", "safety"),
+    ("smoke-alarm", "Smoke alarm", "safety", 6, 6, 2, 25, 0, "bedroom,hallway,hall,foyer,living room,dining area", "safety"),
     # style and comfort
     ("wall-art", "Framed wall art", "decor", 30, 2, 40, 90, 0, "living room,bedroom,dining area,foyer,hallway", "comfort,style"),
     ("mirror", "Full-length mirror", "decor", 24, 2, 65, 120, 0, "bedroom,foyer,hallway,bathroom", "style,light"),

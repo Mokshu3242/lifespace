@@ -32,6 +32,21 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ room_id: roomId }),
     }).then(handle),
+  family: (id) => fetch(`/api/spaces/${id}/family`).then(handle),
+  describeFamily: (id, text) =>
+    fetch(`/api/spaces/${id}/family`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }).then(handle),
+  resetFamily: (id) => fetch(`/api/spaces/${id}/family`, { method: 'DELETE' }).then(handle),
+  improve: (id, body) =>
+    fetch(`/api/spaces/${id}/improve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(handle),
+  improveProgress: (id, job, since) => fetch(`/api/spaces/${id}/improve/${job}?since=${since}`).then(handle),
   designs: (id) => fetch(`/api/spaces/${id}/designs`).then(handle),
   catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
   saveSpace: (id, { grid, rooms, entrance, items }) =>

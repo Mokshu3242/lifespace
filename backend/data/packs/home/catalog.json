@@ -777,7 +777,12 @@
    "price_usd": 25,
    "watts": 0,
    "rooms": [
-    "*"
+    "bedroom",
+    "hallway",
+    "hall",
+    "foyer",
+    "living room",
+    "dining area"
    ],
    "uses": [
     "safety"
