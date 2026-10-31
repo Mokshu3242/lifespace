@@ -4,6 +4,7 @@ import { api } from './api'
 import { CODES, KIND_LABEL, areaSqft, isMeta, modelLabel, roomColor } from './mapStyle'
 import RedesignPanel from './RedesignPanel'
 import PeoplePanel from './PeoplePanel'
+import View3D from './View3D'
 
 const SOURCE_LABEL = {
   printed: 'Name read from the plan',
@@ -39,6 +40,7 @@ export default function PlanEditor({ space, onReset }) {
   const [sim, setSim] = useState(null)
   const [liveItems, setLiveItems] = useState(null)   // items while the improve loop plays on the map
   const [ghost, setGhost] = useState(null)           // an item being carried in or tried somewhere
+  const [view, setView] = useState('2d')
   const [playing, setPlaying] = useState(false)
   const [focus, setFocus] = useState(null)
   const [step, setStep] = useState(0)          // cells walked so far in the playback
@@ -70,7 +72,7 @@ export default function PlanEditor({ space, onReset }) {
         marks.push({ at: pts.length, label: `${lg.t} ${p.name} · ${lg.note}${lg.blocked ? ' (can\u2019t get there)' : ''}` })
         for (const pt of lg.path) pts.push(pt)
       }
-      return { id: p.id, color: p.color, pts, marks }
+      return { id: p.id, name: p.name, color: p.color, width: p.width_in, mobility: p.mobility, age: p.age, pts, marks }
     })
   }, [sim, showAfter, focus])
 
@@ -196,12 +198,16 @@ export default function PlanEditor({ space, onReset }) {
     <div className="editor">
       <div className="editor-main">
         <div className="toolbar">
-          {TOOLS.map((t) => (
+          <div className="tabs view-switch" role="tablist" aria-label="View">
+            <button role="tab" aria-selected={view === '2d'} className={view === '2d' ? 'on' : ''} onClick={() => setView('2d')}>2D</button>
+            <button role="tab" aria-selected={view === '3d'} className={view === '3d' ? 'on' : ''} onClick={() => setView('3d')}>3D</button>
+          </div>
+          {view === '2d' && TOOLS.map((t) => (
             <button key={t.id} className={tool === t.id ? 'tool on' : 'tool'} onClick={() => setTool(t.id)}>
               {t.label}
             </button>
           ))}
-          <button className="tool" onClick={undo} disabled={!history.current.length}>Undo</button>
+          {view === '2d' && <button className="tool" onClick={undo} disabled={!history.current.length}>Undo</button>}
           {((tab === 'redesign' && design) || (tab === 'people' && sim)) && (
             <div className="tabs before-after on-map">
               <button className={!showAfter ? 'on' : ''} onClick={() => setShowAfter(false)}>Before</button>
@@ -213,8 +219,16 @@ export default function PlanEditor({ space, onReset }) {
             Show plan
           </label>
         </div>
-        <p className="hint">{activeTool.hint}</p>
+        <p className="hint">{view === '3d' ? 'The same map in 3D. Switch to 2D to edit rooms and walls.' : activeTool.hint}</p>
         <div className="canvas-wrap">
+          {view === '3d' ? (
+            <View3D space={space} grid={grid} rooms={rooms} catalog={catalog} planImage={planImage} showPlan={showPlan}
+              people={tab === 'people' ? people : []} ghost={ghost} walks={walks}
+              items={liveItems ? liveItems
+                : (tab === 'redesign' || tab === 'people') && design
+                  ? (showAfter ? design.items : items)
+                  : items} />
+          ) : (
           <PlanCanvas space={space} grid={grid} rooms={rooms} entrance={entrance}
             selectedId={selectedId} showPlan={showPlan} planImage={planImage} onPaint={paint}
             people={tab === 'people' ? people : []}
@@ -224,6 +238,7 @@ export default function PlanEditor({ space, onReset }) {
                 ? (showAfter ? design.items : items)
                 : items}
             selectedItem={selectedItem} />
+          )}
         </div>
         <p className="meta">
           {space.width_ft} × {space.height_ft} ft · 1 cell = {space.cell_in} in · scale {space.px_per_ft} px/ft
@@ -235,13 +250,13 @@ export default function PlanEditor({ space, onReset }) {
       <aside className="sidebar">
         <div className="tabs" role="tablist">
           <button role="tab" aria-selected={tab === 'rooms'} className={tab === 'rooms' ? 'on' : ''}
-            onClick={() => setTab('rooms')}>Rooms ({rooms.length})</button>
+            onClick={() => setTab('rooms')}><b>1</b> Plan</button>
           <button role="tab" aria-selected={tab === 'items'} className={tab === 'items' ? 'on' : ''}
-            onClick={() => setTab('items')}>Items ({items.length})</button>
+            onClick={() => setTab('items')}><b>2</b> Items</button>
           <button role="tab" aria-selected={tab === 'redesign'} className={tab === 'redesign' ? 'on' : ''}
-            onClick={() => setTab('redesign')}>Redesign</button>
+            onClick={() => setTab('redesign')}><b>3</b> Redesign</button>
           <button role="tab" aria-selected={tab === 'people'} className={tab === 'people' ? 'on' : ''}
-            onClick={() => setTab('people')}>People</button>
+            onClick={() => setTab('people')}><b>4</b> People</button>
         </div>
         {tab === 'people' ? (
           <PeoplePanel space={space} design={design} sim={sim} onSim={(s) => { setSim(s); setPlaying(Boolean(s)) }}
