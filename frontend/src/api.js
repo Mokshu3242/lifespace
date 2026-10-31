@@ -26,6 +26,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ design_id: designId }),
     }).then(handle),
+  renderRoom: (id, designId, roomId) =>
+    fetch(`/api/spaces/${id}/designs/${designId}/render`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room_id: roomId }),
+    }).then(handle),
   designs: (id) => fetch(`/api/spaces/${id}/designs`).then(handle),
   catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
   saveSpace: (id, { grid, rooms, entrance, items }) =>

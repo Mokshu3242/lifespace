@@ -160,3 +160,10 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .flags { font-size: 0.8rem; }
 .flags summary { cursor: pointer; font-weight: 600; }
 .flags ul { padding-left: 18px; margin: 6px 0 0; }
+
+.picture { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.picture h3 { font-size: 0.95rem; margin: 0 0 8px; }
+.picture-row { display: flex; gap: 8px; }
+.picture-row select { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font: inherit; }
+.picture img { width: 100%; border-radius: 10px; margin-top: 10px; display: block; }

@@ -8,6 +8,7 @@
 MODE picks the provider chain. If one provider fails, the next one answers,
 so the demo never breaks. Every answer is cached on disk.
 """
+import hashlib
 import base64
 import io
 import json
@@ -105,6 +106,8 @@ class ModelRouter:
                 errors.append(f"{name}: {e}")
                 continue
             log.info("provider %s answered in %.1fs", name, time.time() - t0)
+            if self.s.mode == "prod" and name != "meta":
+                log.warning("PROD: Meta didn't answer; %s did. Check the Meta key and credits.", name)
             self.last_provider = name
             self.cache.set(key, {"provider": name, "text": text})
             return text
@@ -160,6 +163,8 @@ class ModelRouter:
                 ]}]
         out: dict[str, dict] = {}
         for name in self.vision_chain():
+            if self.s.mode == "prod" and out:
+                break
             key = self.cache.key("see_each", name, msgs)
             hit = self._cached(key)
             if hit is not None:
@@ -175,11 +180,17 @@ class ModelRouter:
             log.info("vision model %s answered in %.1fs", name, time.time() - t0)
             self.cache.set(key, ans)
             out[name] = ans
+            if self.s.mode == "prod":
+                break       # in prod Muse Spark decides; the next models only step in if it fails
+        if self.s.mode == "prod" and "meta" not in out:
+            log.warning("PROD: Meta didn't answer a vision call; used %s", list(out) or "nobody")
         return out
 
-    def render(self, prompt: str) -> bytes:
+    def render(self, prompt: str, image_bytes: bytes | None = None) -> bytes:
+        """Text to image, or with image_bytes: redraw that picture following the prompt."""
         chain = CHAINS[self.s.mode]["image"]
-        key = self.cache.key("image", chain, prompt)
+        key = self.cache.key("image", chain, prompt,
+                             hashlib.sha256(image_bytes).hexdigest() if image_bytes else "")
         hit = self._cached(key)
         if hit is not None:
             self.last_provider = hit["provider"] + " (cache)"
@@ -187,7 +198,11 @@ class ModelRouter:
         errors = []
         for name in chain:
             try:
-                png = self.image_providers[name].render(prompt)
+                provider = self.image_providers[name]
+                if image_bytes is not None and getattr(provider, "name", "") == "meta-image":
+                    png = provider.render(prompt, image_bytes)
+                else:
+                    png = provider.render(prompt)
             except ProviderError as e:
                 log.warning("image provider %s failed: %s", name, e)
                 errors.append(f"{name}: {e}")

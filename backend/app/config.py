@@ -18,11 +18,12 @@ class Settings(BaseSettings):
     meta_api_key: str = ""
     meta_base_url: str = "https://api.meta.ai/v1"
     meta_chat_model: str = "muse-spark-1.3"
+    meta_image_model: str = "muse-image-1.0"
 
     # Muse Spark Open on Baseten (backup in prod, open-weight bonus)
     baseten_api_key: str = ""
     baseten_base_url: str = "https://inference.baseten.co/v1"
-    baseten_model: str = "meta-models/muse-spark-open-1026"
+    baseten_model: str = "meta-models/muse-spark-open"   # check on Baseten once there is a key
 
     # Cloudflare Workers AI (free tier, local backup)
     cloudflare_account_id: str = ""

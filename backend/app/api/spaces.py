@@ -173,3 +173,47 @@ def run_simulation(space_id: str, ask: SimulateAsk):
     folder.mkdir(exist_ok=True)
     (folder / f"{ask.design_id or 0}.json").write_text(json.dumps(out), encoding="utf-8")
     return out
+
+
+class RenderAsk(BaseModel):
+    room_id: int
+
+
+@router.post("/{space_id}/designs/{design_id}/render")
+def render_room(space_id: str, design_id: int, ask: RenderAsk):
+    """Muse Image draws one room of a design. Saved, so each picture is paid for once."""
+    from app.space.render import room_prompt
+
+    p = _path(space_id, "map.json")
+    dp = _path(space_id, "designs") / f"{int(design_id)}.json"
+    if not (p.exists() and dp.exists()):
+        raise HTTPException(404, "Design not found")
+    space = json.loads(p.read_text(encoding="utf-8"))
+    if not any(r["id"] == ask.room_id for r in space["rooms"]):
+        raise HTTPException(404, "Room not found")
+    out = dp.parent / f"{int(design_id)}_room{int(ask.room_id)}.png"
+    url = f"/api/spaces/{space_id}/designs/{int(design_id)}/render/{int(ask.room_id)}"
+    meta = out.with_suffix(".json")
+    if out.exists() and meta.exists():
+        return json.loads(meta.read_text(encoding="utf-8"))
+    design = json.loads(dp.read_text(encoding="utf-8"))
+    prompt = room_prompt(space, design, ask.room_id)
+    router_ = get_router()
+    try:
+        png = router_.render(prompt)
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Image models are unavailable: {e}")
+    out.write_bytes(png)
+    who = router_.last_provider or ""
+    info = {"url": url, "prompt": prompt,
+            "provider": who.replace("meta", "meta-image", 1) if who.startswith("meta") else who}
+    meta.write_text(json.dumps(info), encoding="utf-8")
+    return info
+
+
+@router.get("/{space_id}/designs/{design_id}/render/{room_id}")
+def get_render(space_id: str, design_id: int, room_id: int):
+    out = _path(space_id, "designs") / f"{int(design_id)}_room{int(room_id)}.png"
+    if not out.exists():
+        raise HTTPException(404, "No picture yet")
+    return FileResponse(out, media_type="image/png")

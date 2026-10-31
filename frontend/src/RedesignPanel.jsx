@@ -11,6 +11,24 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [versions, setVersions] = useState([])
+  const [pictureRoom, setPictureRoom] = useState(null)
+  const [picture, setPicture] = useState(null)
+  const [drawing, setDrawing] = useState(false)
+
+  useEffect(() => { setPicture(null) }, [design?.id, pictureRoom])
+
+  async function draw() {
+    const roomId = pictureRoom ?? changedRooms[0]
+    if (roomId == null) return
+    setDrawing(true)
+    setError(null)
+    try {
+      setPicture(await api.renderRoom(space.id, design.id, roomId))
+    } catch (e) {
+      setError(e.message)
+    }
+    setDrawing(false)
+  }
 
   useEffect(() => {
     api.designs(space.id).then((v) => {
@@ -36,6 +54,7 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
 
   const roomName = (id) => rooms.find((r) => r.id === id)?.name || 'no room'
   const kept = design ? design.changes.filter((c) => !c.dropped) : []
+  const changedRooms = [...new Set(kept.map((c) => c.room).filter((r) => r != null))]
   const dropped = design ? design.changes.filter((c) => c.dropped) : []
 
   return (
@@ -98,6 +117,25 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
             </details>
           )}
           {design.warnings?.map((w) => <p key={w} className="warn">{w}</p>)}
+          {changedRooms.length > 0 && (
+            <div className="picture">
+              <h3>See it</h3>
+              <div className="picture-row">
+                <select value={pictureRoom ?? changedRooms[0]} onChange={(e) => setPictureRoom(Number(e.target.value))}>
+                  {changedRooms.map((id) => <option key={id} value={id}>{roomName(id)}</option>)}
+                </select>
+                <button onClick={draw} disabled={drawing}>{drawing ? 'Drawing…' : 'Picture this room'}</button>
+              </div>
+              {picture && (
+                <>
+                  <img src={`${picture.url}?v=${design.id}`} alt={`The redesigned ${roomName(pictureRoom ?? changedRooms[0])}`} />
+                  <p className={isMeta(picture.provider) ? 'powered meta' : 'powered'}>
+                    Drawn by {modelLabel(picture.provider)} from the real items in this design
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
