@@ -329,15 +329,20 @@ def _run_improve(job: str, space_id: str, p: Path, ask: ImproveAsk) -> None:
                          context_line(space.get("pack") or "home", space.get("describe") or ""), people)
         for n, design, sc, sim in rounds:
             spent += design.spent_usd
+            for t in design.thoughts:
+                say("thought", round=n, text=f"Thinking: {t}")
             for c in design.to_dict()["changes"]:
                 all_changes.append(dict(c, round=n))
                 where = names.get(c.get("room"), "")
                 if c["dropped"]:
                     say("rejected", round=n, text=f"Rejected: {c['name']}{' in ' + where if where else ''}. {c['dropped']}",
-                        item=None)
+                        item=None, tries=c.get("tries", []))
                 else:
                     verb = {"add": "Adding", "replace": "Replacing with", "remove": "Removing"}.get(c["action"], c["action"])
+                    if c.get("swapped_from"):
+                        say("swap", round=n, text=f"Won't fit: {c['swapped_from']} → trying {c['name']}")
                     say("change", round=n, action=c["action"], item=c.get("placed"), replaces=c.get("replaces"),
+                        delivery=c.get("delivery", []), tries=c.get("tries", []), carry=c.get("carry", ""),
                         text=f"{verb} {c['name']}{' in ' + where if where else ''}"
                              + (f", ${c['cost_usd']:,.0f}" if c.get("cost_usd") else "")
                              + (f". {c['reason']}" if c.get("reason") else ""))

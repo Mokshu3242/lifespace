@@ -5,7 +5,9 @@ import { isMeta, modelLabel } from './mapStyle'
 const ACTION = { add: 'Add', replace: 'Replace', remove: 'Remove' }
 
 /** Ask for a redesign inside a budget, then show what changed and why. */
-export default function RedesignPanel({ space, dirty, design, onDesign, onShowAfter, rooms, onHover, onLive }) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+export default function RedesignPanel({ space, dirty, design, onDesign, onShowAfter, rooms, onHover, onLive, onGhost }) {
   const [budget, setBudget] = useState(1000)
   const [goals, setGoals] = useState('')
   const [busy, setBusy] = useState(false)
@@ -25,6 +27,69 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [log])
 
+  // One item's way in: carried along its path from the front door, the spots tried first
+  // (red, with the real reason), then set down where it fits.
+  async function playItem(item, delivery, tries, say) {
+    if (delivery?.length > 1) {
+      const step = Math.max(1, Math.round(delivery.length / 60))
+      for (let i = 0; i < delivery.length; i += step) {
+        const [c, r] = delivery[i]
+        onGhost({ x: c + 0.5, y: r + 0.5, w: item.w, d: item.d, tone: 'carry', label: `Carrying ${item.name}`,
+          trail: delivery.slice(0, i + 1) })
+        await sleep(28)
+      }
+    }
+    for (const t of tries || []) {
+      say({ kind: 'try', text: `Tried ${t.where}: ${t.why}` })
+      onGhost({ ...t, tone: 'bad', label: t.why, trail: delivery })
+      await sleep(1100)
+    }
+    onGhost({ x: item.x, y: item.y, w: item.w, d: item.d, tone: 'ok', label: `${item.name} fits here`, trail: delivery })
+    await sleep(700)
+    onGhost(null)
+  }
+
+  // Replay any design's changes the same way (for designs made with one Redesign click)
+  const [replaying, setReplaying] = useState(false)
+  async function replay() {
+    if (!design) return
+    setReplaying(true)
+    setLog([])
+    onShowAfter(true)
+    const say = (e) => setLog((l) => [...l, e])
+    let live = design.items.filter((it) => it.status !== 'new').map((it) => ({ ...it, status: it.status === 'kept' ? 'kept' : it.status }))
+    live = live.map((it) => ({ ...it, status: 'kept' }))
+    onLive(live)
+    for (const th of design.thoughts || []) { say({ kind: 'thought', text: `Thinking: ${th}` }); await sleep(1200) }
+    for (const c of design.changes) {
+      const where = roomName(c.room)
+      if (c.dropped) {
+        say({ kind: 'rejected', text: `Rejected: ${c.name}${where ? ' in ' + where : ''}. ${c.dropped}` })
+        await sleep(800)
+        continue
+      }
+      if (c.swapped_from) { say({ kind: 'swap', text: `Won't fit: ${c.swapped_from} → trying ${c.name}` }); await sleep(1200) }
+      if (c.action === 'remove' && c.replaces != null) {
+        say({ kind: 'change', text: `Removing ${c.name}${where ? ' in ' + where : ''}` })
+        live = live.map((it) => (it.id === c.replaces ? { ...it, status: 'removed' } : it))
+        onLive(live)
+        await sleep(900)
+        continue
+      }
+      if (!c.placed) continue
+      say({ kind: 'change', text: `${c.action === 'replace' ? 'Replacing with' : 'Adding'} ${c.name}${where ? ' in ' + where : ''}${c.cost_usd ? `, $${c.cost_usd}` : ''}${c.carry ? ` · ${c.carry}` : ''}` })
+      await playItem(c.placed, c.delivery, c.tries, say)
+      if (c.replaces != null) live = live.map((it) => (it.id === c.replaces ? { ...it, status: 'replaced' } : it))
+      live = [...live, { ...c.placed, status: 'new' }]
+      onLive(live)
+      onHover(c.placed.id)
+      await sleep(500)
+    }
+    onHover(null)
+    onLive(null)
+    setReplaying(false)
+  }
+
   // Run the improve loop as a job and play its steps one by one on the map and in the log.
   async function improveLoop() {
     setImproving(true)
@@ -36,7 +101,6 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
     onLive(live)
     const queue = []
     let finished = false
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
     try {
       const { job } = await api.improve(space.id, { budget: Number(budget), goals, target_safety: Number(target), rounds: 3 })
       let since = 0
@@ -65,10 +129,13 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
         }
         setLog((l) => [...l, ev])
         if (ev.kind === 'change' && ev.item) {
+          await playItem(ev.item, ev.delivery, ev.tries, (e) => setLog((l) => [...l, e]))
           live = [...live, { ...ev.item, status: 'new' }]
           onLive(live)
           onHover(ev.item.id)
-          await sleep(900)
+          await sleep(400)
+        } else if (ev.kind === 'thought' || ev.kind === 'swap') {
+          await sleep(1200)
         } else if (ev.kind === 'change' && ev.action === 'remove' && ev.replaces != null) {
           live = live.map((it) => (it.id === ev.replaces ? { ...it, status: 'removed' } : it))
           onLive(live)
@@ -208,6 +275,9 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
       {design && (
         <>
           {design.summary && <p className="summary">{design.summary}</p>}
+          <button className="tool watch" onClick={replay} disabled={replaying || improving}>
+            {replaying ? 'Furnishing…' : '▶ Watch it being furnished'}
+          </button>
           <p className={isMeta(design.provider) ? 'powered meta' : 'powered'}>Designed by {modelLabel(design.provider)} · checked by code</p>
           <div className="spend">
             <div className="bar"><span className={design.spent_usd > design.budget_usd ? 'over' : ''}

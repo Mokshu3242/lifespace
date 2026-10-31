@@ -38,6 +38,7 @@ export default function PlanEditor({ space, onReset }) {
   const [showAfter, setShowAfter] = useState(true)
   const [sim, setSim] = useState(null)
   const [liveItems, setLiveItems] = useState(null)   // items while the improve loop plays on the map
+  const [ghost, setGhost] = useState(null)           // an item being carried in or tried somewhere
   const [playing, setPlaying] = useState(false)
   const [focus, setFocus] = useState(null)
   const [step, setStep] = useState(0)          // cells walked so far in the playback
@@ -217,6 +218,7 @@ export default function PlanEditor({ space, onReset }) {
           <PlanCanvas space={space} grid={grid} rooms={rooms} entrance={entrance}
             selectedId={selectedId} showPlan={showPlan} planImage={planImage} onPaint={paint}
             people={tab === 'people' ? people : []}
+            ghost={ghost}
             items={liveItems ? liveItems
               : (tab === 'redesign' || tab === 'people') && design
                 ? (showAfter ? design.items : items)
@@ -246,7 +248,7 @@ export default function PlanEditor({ space, onReset }) {
             showAfter={showAfter} playing={playing} onPlay={setPlaying} focus={focus} onFocus={setFocus} clock={clock} />
         ) : tab === 'redesign' ? (
           <RedesignPanel space={space} dirty={dirty} design={design} onDesign={setDesign}
-            onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} onLive={setLiveItems} />
+            onShowAfter={setShowAfter} rooms={rooms} onHover={setSelectedItem} onLive={setLiveItems} onGhost={setGhost} />
         ) : tab === 'items' ? (
           <>
             {item ? (

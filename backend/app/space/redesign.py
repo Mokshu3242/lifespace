@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 
 from app import catalog
+from app.space.furnish import delivery_path, first_tries, smaller_options
 
 log = logging.getLogger("redesign")
 
@@ -50,7 +51,9 @@ Actions:
 - "remove": take out an existing item (give its id in "replaces"); "item" can be ""
 Built-in things (toilets, tubs, showers, sinks, stoves, dishwashers, fridges) stay; never remove or replace them.
 Most important change first.
-Reply as JSON: {{"summary": "one sentence", "changes": [{{"action": "add", "room": 0, "item": "catalog-id",
+Also give 2 to 4 short "thoughts": what you weighed and what you chose not to buy, and why,
+using the items' names, not their ids (for example "Skipped the 3-seat sofa: it would take most of the budget").
+Reply as JSON: {{"summary": "one sentence", "thoughts": ["..."], "changes": [{{"action": "add", "room": 0, "item": "catalog-id",
 "replaces": null, "reason": "a few words on why this helps the people here"}}]}}"""
 
 
@@ -65,6 +68,10 @@ class Change:
     cost_usd: float = 0
     placed: dict | None = None       # the item as placed on the grid
     dropped: str = ""                # why code rejected it ("" if kept)
+    tries: list = field(default_factory=list)      # spots tried first and why they failed
+    delivery: list = field(default_factory=list)   # path from the front door, [[col, row], ...]
+    carry: str = ""                                 # how it was carried in
+    swapped_from: str = ""                          # the item that didn't fit through the doors
 
 
 @dataclass
@@ -74,6 +81,7 @@ class Design:
     spent_usd: float
     items: list[dict]                # the full item list after the redesign
     changes: list[Change] = field(default_factory=list)
+    thoughts: list = field(default_factory=list)   # what the model weighed, in its words
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -229,6 +237,18 @@ def mounted_spot(grid: np.ndarray, room: int, item: catalog.Item, items: list[di
     if item.id in CEILING:
         j = int(np.argmin((ys - ys.mean()) ** 2 + (xs - xs.mean()) ** 2))
         return {"x": float(xs[j]) + 0.5, "y": float(ys[j]) + 0.5, "w": 1.0, "d": 1.0}
+    if item.category == "decor" and item.h_in == 0 and item.d_in >= 24:
+        # a rug lies flat in the open middle of the room, at its real size, under the furniture
+        import cv2
+        dt = cv2.distanceTransform(in_room.astype(np.uint8), cv2.DIST_L2, 5)
+        r, c = np.unravel_index(int(np.argmax(dt)), dt.shape)
+        cell_in = 6
+        w, d = item.w_in / cell_in, item.d_in / cell_in
+        span_x, span_y = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
+        if (w > d) != (span_x > span_y):
+            w, d = d, w                          # lay it along the room's long side
+        return {"x": float(c) + 0.5, "y": float(r) + 0.5, "w": float(min(w, span_x * 0.8)),
+                "d": float(min(d, span_y * 0.8))}
     # room cells that touch a wall
     solid = np.isin(grid, (WALL, FIXTURE, OUTSIDE))
     near_solid = _dilate(solid, 1) & in_room
@@ -322,7 +342,8 @@ def redesign(space: dict, budget: float, goals: str, router, context: str = "") 
 
     ans = router.ask_json(PROMPT.format(context=context, budget=int(budget), goals=goals or "none given",
                                         rooms=rooms_txt, items=items_txt, catalog=cat_txt))
-    design = Design(summary=str(ans.get("summary") or ""), budget_usd=budget, spent_usd=0, items=items)
+    design = Design(summary=str(ans.get("summary") or ""), budget_usd=budget, spent_usd=0, items=items,
+                    thoughts=[str(t)[:140] for t in (ans.get("thoughts") or [])[:4] if t])
 
     room_ids = {r["id"] for r in space["rooms"]}
     door_zone = doorway_zone(grid, max(1, round(DOOR_CLEAR_IN / cell_in / 2)))
@@ -419,31 +440,59 @@ def redesign(space: dict, budget: float, goals: str, router, context: str = "") 
             ch.dropped = f"over budget (${design.spent_usd + cat.price_usd:,.0f} of ${budget:,.0f})"
             return
 
-        # ---- placement
+        # ---- placement: try the obvious spots first, pick the best one, then carry it in from the door
         if old is not None:
             old["status"] = "replaced"
         trial = [it for it in items if it["status"] not in ("removed", "replaced")]
         free = occupancy(grid, trial, pack)
-        if cat.category in MOUNTED or cat.h_in == 0 or cat.d_in < 6:
-            spot = mounted_spot(grid, room, cat, trial, pack)
-        else:
-            near = (old["x"], old["y"]) if old else None
-            spot = find_spot(grid, free, room, cat, cell_in, door_zone, near)
-        if spot is None:
+
+        def place(c: catalog.Item):
+            """(new item, tries, delivery path, how carried, problem)."""
+            mounted = c.category in MOUNTED or c.h_in == 0 or c.d_in < 6
+            tries = []
+            if mounted:
+                spot = mounted_spot(grid, room, c, trial, pack)
+            else:
+                def blocks_way(c0, r0, w, d):
+                    tmp = {"id": -1, "item": c.id, "x": c0 + w / 2, "y": r0 + d / 2, "w": w, "d": d}
+                    return not before <= reachable_rooms(grid, occupancy(grid, trial + [tmp], pack), entrance, path_cells)
+                tries = first_tries(grid, free, door_zone, room, c, cell_in, blocks_way)
+                spot = find_spot(grid, free, room, c, cell_in, door_zone, (old["x"], old["y"]) if old else None)
+            if spot is None:
+                return None, tries, [], "", (f"no space for a {c.w_in / 12:.1f} x {c.d_in / 12:.1f} ft "
+                                            f"{c.name.lower()} in the {room_name.lower()}")
+            new = {"id": next_id, "item": c.id, "name": c.name, **spot, "room": room, "chairs": 0,
+                   "price_usd": c.price_usd, "source": "redesign", "note": ch.reason, "unsure": False,
+                   "status": "new"}
+            after = reachable_rooms(grid, occupancy(grid, trial + [new], pack), entrance, path_cells)
+            if not before <= after:
+                cut = ", ".join(r["name"] for r in space["rooms"] if r["id"] in before - after)
+                return None, tries, [], "", f"it would block the way into {cut}"
+            if mounted:
+                return new, tries, [], "", ""
+            from app.space.simulate import Floor   # here, not at the top: simulate imports this module
+            path, how = delivery_path(Floor(space, trial, pack), entrance, spot, c)
+            if path is None:
+                return None, tries, [], "", how
+            return new, tries, path, how, ""
+
+        new, tries, path, how, problem = place(cat)
+        if problem and "carry in" in problem:
+            # too big to get through the doors: try a smaller real item that does the same job
+            for alt in smaller_options(pack, cat, room_name, budget - design.spent_usd):
+                n2, t2, p2, h2, prob2 = place(alt)
+                if not prob2:
+                    ch.swapped_from = f"{cat.name}: {problem}"
+                    cat, new, tries, path, how, problem = alt, n2, t2, p2, h2, ""
+                    ch.item, ch.name = alt.id, alt.name
+                    break
+        if problem:
             if old is not None:
                 old["status"] = "kept"
-            ch.dropped = f"no space for a {cat.w_in / 12:.1f} x {cat.d_in / 12:.1f} ft {cat.name.lower()} in the {room_name.lower()}"
+            ch.dropped = problem
+            ch.tries = tries
             return
-        new = {"id": next_id, "item": cat.id, "name": cat.name, **spot, "room": room, "chairs": 0,
-               "price_usd": cat.price_usd, "source": "redesign", "note": ch.reason, "unsure": False,
-               "status": "new"}
-        after = reachable_rooms(grid, occupancy(grid, trial + [new], pack), entrance, path_cells)
-        if not before <= after:
-            if old is not None:
-                old["status"] = "kept"
-            cut = ", ".join(r["name"] for r in space["rooms"] if r["id"] in before - after)
-            ch.dropped = f"it would block the way into {cut}"
-            return
+        ch.tries, ch.delivery, ch.carry = tries, path, how
         items.append(new)
         next_id += 1
         ch.placed, ch.cost_usd = new, cat.price_usd

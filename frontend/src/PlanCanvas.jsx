@@ -6,7 +6,7 @@ import { CODES, roomColor } from './mapStyle'
  * Reports cell clicks/drags through onPaint(row, col, isFirst).
  */
 export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, showPlan,
-  planImage, onPaint, items = [], selectedItem = null, people = [] }) {
+  planImage, onPaint, items = [], selectedItem = null, people = [], ghost = null }) {
   const ref = useRef(null)
   const dragging = useRef(false)
   const last = useRef(null)
@@ -132,6 +132,44 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.arc((ec + 0.5) * S, (er + 0.5) * S, Math.max(5, S), 0, Math.PI * 2)
       ctx.fill()
     }
+    // an item on its way in: the path from the front door, then the box where it is now
+    if (ghost) {
+      if (ghost.trail?.length > 1) {
+        ctx.strokeStyle = '#2f7fd6'
+        ctx.lineWidth = Math.max(2, S * 0.4)
+        ctx.setLineDash([6, 4])
+        ctx.beginPath()
+        ghost.trail.forEach(([c, r], i) => {
+          const px = (c + 0.5) * S, py = (r + 0.5) * S
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        })
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+      const gx = (ghost.x - ghost.w / 2) * S, gy = (ghost.y - ghost.d / 2) * S
+      const tone = { carry: '#2f7fd6', bad: '#c0392b', ok: '#2f9e6b' }[ghost.tone] || '#2f7fd6'
+      ctx.globalAlpha = 0.35
+      ctx.fillStyle = tone
+      ctx.fillRect(gx, gy, ghost.w * S, ghost.d * S)
+      ctx.globalAlpha = 1
+      ctx.lineWidth = 2.5
+      ctx.strokeStyle = tone
+      ctx.strokeRect(gx, gy, ghost.w * S, ghost.d * S)
+      if (ghost.tone === 'bad') {
+        ctx.beginPath()
+        ctx.moveTo(gx, gy); ctx.lineTo(gx + ghost.w * S, gy + ghost.d * S)
+        ctx.moveTo(gx + ghost.w * S, gy); ctx.lineTo(gx, gy + ghost.d * S)
+        ctx.stroke()
+      }
+      if (ghost.label) {
+        ctx.font = `600 ${Math.min(12, Math.max(10, S * 1.2))}px system-ui, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        pill(ctx, ghost.label, ghost.x * S, gy - 12, tone, '#fff')
+      }
+    }
+
     // people: a fading trail and a dot where they are now
     for (const p of people) {
       ctx.strokeStyle = p.color
@@ -172,7 +210,7 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       if (ctx.measureText(label).width + 10 > span && room.id !== selectedId) continue
       pill(ctx, label, (cx + 0.5) * S, (cy + 0.5) * S, 'rgba(255,255,255,0.88)', '#1d2320')
     }
-  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem, people])
+  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem, people, ghost])
 
   function cellAt(e) {
     const rect = ref.current.getBoundingClientRect()

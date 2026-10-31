@@ -200,3 +200,8 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .live-log li.scores { font-weight: 600; background: var(--bg); padding: 4px 6px; border-radius: 6px; }
 .live-log li.note, .live-log li.thinking { color: var(--muted); font-style: italic; }
 .live-log li.error { color: var(--bad); }
+
+.live-log li.thought { color: var(--ink); font-style: italic; opacity: 0.85; }
+.live-log li.try { color: #c0392b; padding-left: 10px; }
+.live-log li.swap { color: #b7791f; font-weight: 600; }
+.watch { margin: 4px 0 8px; }
