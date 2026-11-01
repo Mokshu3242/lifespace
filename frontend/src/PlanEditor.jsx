@@ -26,6 +26,13 @@ const TOOLS = [
   { id: 'entrance', label: 'Entrance', hint: 'Click where the front door is.' },
 ]
 
+const STEP_TABS = [
+  { id: 'rooms', label: 'Plan', icon: '📐', help: 'Check rooms, sizes and doors', done: () => true },
+  { id: 'items', label: 'Items', icon: '🛋️', help: 'Check the furniture found', done: () => false },
+  { id: 'redesign', label: 'Redesign', icon: '✨', help: 'Fix it on a budget', done: ({ design }) => !!design },
+  { id: 'people', label: 'People', icon: '👪', help: 'Watch them live a day', done: ({ sim }) => !!sim },
+]
+
 export default function PlanEditor({ space, onReset }) {
   const [grid, setGrid] = useState(space.grid)
   const [rooms, setRooms] = useState(space.rooms)
@@ -240,6 +247,15 @@ export default function PlanEditor({ space, onReset }) {
             selectedItem={selectedItem} />
           )}
         </div>
+        <div className="chips">
+          <span className="chip-stat"><b>{rooms.length}</b> rooms</span>
+          <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
+          <span className="chip-stat"><b>{space.doors?.length ?? 0}</b> doorways</span>
+          {space.doors?.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{space.doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
+          <span className="chip-stat"><b>{items.length}</b> items found</span>
+          {design && <span className="chip-stat good-chip">Design {design.id}: <b>{design.changes?.length ?? 0}</b> changes</span>}
+          {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
+        </div>
         <p className="meta">
           {space.width_ft} × {space.height_ft} ft · 1 cell = {space.cell_in} in · scale {space.px_per_ft} px/ft
           ({space.scale_source})
@@ -249,14 +265,13 @@ export default function PlanEditor({ space, onReset }) {
 
       <aside className="sidebar">
         <div className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === 'rooms'} className={tab === 'rooms' ? 'on' : ''}
-            onClick={() => setTab('rooms')}><b>1</b> Plan</button>
-          <button role="tab" aria-selected={tab === 'items'} className={tab === 'items' ? 'on' : ''}
-            onClick={() => setTab('items')}><b>2</b> Items</button>
-          <button role="tab" aria-selected={tab === 'redesign'} className={tab === 'redesign' ? 'on' : ''}
-            onClick={() => setTab('redesign')}><b>3</b> Redesign</button>
-          <button role="tab" aria-selected={tab === 'people'} className={tab === 'people' ? 'on' : ''}
-            onClick={() => setTab('people')}><b>4</b> People</button>
+          {STEP_TABS.map((t) => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''}
+              onClick={() => setTab(t.id)} title={t.help}>
+              <span className="tab-ico" aria-hidden>{t.icon}</span>{t.label}
+              {t.done({ design, sim }) && <span className="tab-done" aria-label="done">✓</span>}
+            </button>
+          ))}
         </div>
         {tab === 'people' ? (
           <PeoplePanel space={space} design={design} sim={sim} onSim={(s) => { setSim(s); setPlaying(Boolean(s)) }}
@@ -336,9 +351,9 @@ export default function PlanEditor({ space, onReset }) {
         </ul>
         </>
         )}
-        {space.doors?.length > 0 && (
-          <div className="doors-found">
-            <strong>Doorways measured on the plan: {space.doors.length}</strong>
+        {tab === 'rooms' && space.doors?.length > 0 && (
+          <details className="doors-found" open={space.doors.length <= 6}>
+            <summary><strong>Doorways measured on the plan: {space.doors.length}</strong></summary>
             <ul>
               {[...space.doors].sort((a, b) => a.width_in - b.width_in).map((d, i) => (
                 <li key={i} className={d.width_in < 30 ? 'narrow' : ''}>
@@ -347,9 +362,14 @@ export default function PlanEditor({ space, onReset }) {
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         )}
-        {space.warnings?.length > 0 && (
+        {(() => {
+          const i = STEP_TABS.findIndex((t) => t.id === tab)
+          const next = STEP_TABS[i + 1]
+          return next && <button className="next-step" onClick={() => setTab(next.id)}>Next: {next.icon} {next.label} →<small>{next.help}</small></button>
+        })()}
+        {tab === 'rooms' && space.warnings?.length > 0 && (
           <div className="warn">
             {space.warnings.map((w) => <p key={w}>{w}</p>)}
           </div>

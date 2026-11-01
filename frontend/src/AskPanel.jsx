@@ -28,7 +28,7 @@ export default function AskPanel({ space, design, showAfter }) {
 
   return (
     <details className="future ask">
-      <summary>Ask LifeSpace</summary>
+      <summary>💬 Ask LifeSpace <small>plain questions, measured answers</small></summary>
       <p className="meta">Ask anything about {designId ? 'this redesign' : 'this place'}. The answer uses only what was measured on the plan.</p>
       <div className="ask-ideas">
         {(IDEAS[space.pack] || IDEAS.home).map((t) => <button key={t} className="chip" disabled={busy} onClick={() => go(t)}>{t}</button>)}

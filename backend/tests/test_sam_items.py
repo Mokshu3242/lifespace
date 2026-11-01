@@ -74,7 +74,7 @@ def test_gap_between_rooms_without_a_swing_is_an_open_doorway():
     gray[54:72, :] = 0
     gray[54:72, 60:96] = 255
     d = sam_items.doorways(gray, grid, 12.0, 6, [])
-    assert len(d) == 1 and d[0]["has_door"] is False and d[0]["rooms"] == [0, 1]
+    assert len(d) == 1 and d[0]["has_door"] is None and d[0]["rooms"] == [0, 1]
 
 
 def test_wide_gap_without_a_swing_is_not_a_door():

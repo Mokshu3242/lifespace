@@ -26,7 +26,7 @@ export default function FuturePanel({ space, design, showAfter }) {
   const d = (k) => out && out.scores.then[k].score - out.scores.now[k].score
   return (
     <details className="future" open={!!out}>
-      <summary>In {years} years</summary>
+      <summary>⏳ In {years} years <small>they get older</small></summary>
       <p className="meta">The same people, {years} years older, in {designId ? 'this redesign' : 'this home as it is'}. Who needs more room, and what stops working?</p>
       <div className="future-row">
         <select value={years} onChange={(e) => setYears(Number(e.target.value))} aria-label="Years from now">

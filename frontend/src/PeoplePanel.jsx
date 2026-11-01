@@ -83,6 +83,7 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
       </div>
       <button onClick={run} disabled={busy}>{busy ? 'Living the day…' : sim ? 'Run again' : 'Run a day'}</button>
       {error && <p className="bad">{error}</p>}
+      <h3 className="whatif">What if…</h3>
       <FuturePanel space={space} design={design} showAfter={showAfter} />
       <FireDrill space={space} design={design} />
       <AskPanel space={space} design={design} showAfter={showAfter} />

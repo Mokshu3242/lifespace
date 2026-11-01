@@ -343,10 +343,13 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
         # different rooms (not outside) is still a doorway, just without a door leaf we can see.
         # only between two real indoor rooms: a window onto a terrace, or a built-in niche, is not a door
         kinds = {r["id"]: r.get("kind") for r in (rooms or [])}
-        big = lambda i: (grid == i).sum() * (cell_in / 12) ** 2 >= 15
+        names = {r["id"]: (r.get("name") or "").lower() for r in (rooms or [])}
+        big = lambda i: (grid == i).sum() * (cell_in / 12) ** 2 >= 8 and "built" not in names.get(i, "")
         room_to_room = len(f["rooms"]) == 2 and not f["outside"] \
             and all(kinds.get(i) != "outdoor" and big(i) for i in f["rooms"])
-        if width_in < 20 or not (door or (room_to_room and 24 <= width_in <= 42 and 4 <= f["n"] <= 8)):
+        log.debug("doorway? %s n=%s w=%s door=%s r2r=%s", f["rooms"], f["n"], width_in, door, room_to_room)
+        # dotted swing arcs eat a little of the measured gap, so an unswung doorway may read 18 to 20 in
+        if not (door and width_in >= 20 or (room_to_room and 18 <= width_in <= 42 and 3 <= f["n"] <= 8)):
             continue
         # the door leaf and its swing arc are an open door, not furniture: make them floor so people
         # walk through. Clear the -4 cells joined to the opening, within a door's reach of it
@@ -375,6 +378,6 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
                 grid[rr, cc] = grid[ys[j], xs[j]]
         out.append({"x": round(cx, 2), "y": round(cy, 2), "width_in": width_in, "axis": f["axis"],
                     "outside": f["outside"],
-                    "rooms": f["rooms"], "has_door": door, "source": "code", "conf": 1.0,
+                    "rooms": f["rooms"], "has_door": True if door else None,   # None: no swing seen (dotted arcs are easy to miss) "source": "code", "conf": 1.0,
                     "box": [f["c"] - 2, f["r"] - 2, f["c"] + 3, f["r"] + 3]})
     return out

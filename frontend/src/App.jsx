@@ -6,6 +6,23 @@ import ComparePage from './ComparePage'
 import { api } from './api'
 import './App.css'
 
+/** While a plan is read: the steps tick along so the wait feels like progress (timed, not tracked). */
+function ReadingSteps({ street }) {
+  const steps = street
+    ? ['Finding lights, benches and bins', 'Reading the surface and shade', 'Scoring the street']
+    : ['Finding walls and doors', 'Reading room names and sizes', 'Finding furniture', 'Checking the scale']
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => Math.min(steps.length - 1, x + 1)), street ? 9000 : 14000)
+    return () => clearInterval(t)
+  }, [street, steps.length])
+  return (
+    <ol className="reading">
+      {steps.map((s, k) => <li key={s} className={k < i ? 'done' : k === i ? 'now' : ''}>{k < i ? '✓' : k === i ? '…' : '·'} {s}</li>)}
+    </ol>
+  )
+}
+
 const PACKS = [
   { id: 'home', label: 'Home' },
   { id: 'office', label: 'Office' },
@@ -17,6 +34,13 @@ const STEPS = [
   { n: 2, title: 'Tell it who lives there', text: '“My dad is 74 and uses a walker.” Each person gets a real body width and a daily routine.' },
   { n: 3, title: 'Redesign on a budget', text: 'Real, common items only. Every idea is checked: does it fit, can it get through the door, does it block anyone?' },
   { n: 4, title: 'Watch them live it', text: 'The family lives the same day before and after. Paths, squeezes, blocked trips and scores are measured, not guessed.' },
+]
+
+const SAMPLES = [
+  { file: 'home-2bed-patio.jpg', pack: 'home', label: '2-bed with patio', describe: '2-bed apartment', icon: '🏠' },
+  { file: 'home-terrace.jpg', pack: 'home', label: 'Home with terrace', describe: '2-bed apartment with terrace', icon: '🌿' },
+  { file: 'office.png', pack: 'office', label: 'Small office', describe: 'small office', icon: '🏢' },
+  { file: 'street.jpg', pack: 'street', label: 'A city street', describe: '', icon: '🚏' },
 ]
 
 const MODELS = [
@@ -57,19 +81,28 @@ export default function App() {
     if (sid) api.getStreet(sid).then(setStreet).catch(() => {})
   }, [])
 
-  async function upload(file) {
+  async function trySample(sm) {
+    setPack(sm.pack)
+    setError(null)
+    try {
+      const blob = await fetch(`/samples/${sm.file}`).then((r) => { if (!r.ok) throw new Error('Sample missing'); return r.blob() })
+      await upload(new File([blob], sm.file, { type: blob.type }), sm.pack, sm.describe)
+    } catch (e) { setError(e.message) }
+  }
+
+  async function upload(file, usePack = pack, useDescribe = describe) {
     if (!file) return
     setBusy(true)
     setError(null)
     try {
-      if (pack === 'street') {
+      if (usePack === 'street') {
         const st = await api.uploadStreet(file)
         setStreet(st)
         history.replaceState(null, '', `?street=${st.id}#/`)
         setBusy(false)
         return
       }
-      const s = await api.uploadPlan(file, { fresh, pack, describe })
+      const s = await api.uploadPlan(file, { fresh, pack: usePack, describe: useDescribe })
       setSpace(s)
       history.replaceState(null, '', `?space=${s.id}#/`)
     } catch (e) {
@@ -129,7 +162,8 @@ export default function App() {
               {busy ? (
                 <>
                   <div className="spinner" />
-                  <p>{pack === 'street' ? 'Reading your street: Meta SAM 3.1 finds lights, benches, bins and sidewalks; Muse Spark reads the surface and shade. About 30 seconds.'
+                  <ReadingSteps street={pack === 'street'} />
+                  <p className="meta">{pack === 'street' ? 'Reading your street: Meta SAM 3.1 finds lights, benches, bins and sidewalks; Muse Spark reads the surface and shade. About 30 seconds.'
                     : 'Reading your plan: walls, doors, rooms, printed sizes and furniture. About a minute.'}</p>
                 </>
               ) : (
@@ -161,6 +195,18 @@ export default function App() {
               )}
               {error && <p className="bad">{error}</p>}
             </section>
+
+            {!busy && (
+              <section className="samples">
+                <span className="meta">No plan handy? Try one:</span>
+                {SAMPLES.map((sm) => (
+                  <button key={sm.file} className="sample" onClick={() => trySample(sm)}>
+                    <img src={`/samples/${sm.file}`} alt="" loading="lazy" />
+                    <span>{sm.icon} {sm.label}</span>
+                  </button>
+                ))}
+              </section>
+            )}
 
             <section className="steps">
               {STEPS.map((s) => (

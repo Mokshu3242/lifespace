@@ -19,7 +19,7 @@ export default function FireDrill({ space, design }) {
     : <span className={d.in_time ? 'good' : 'bad'}>{fmt(d.seconds)}</span>
   return (
     <details className="future">
-      <summary>Fire drill</summary>
+      <summary>🔥 Fire drill <small>who gets out in time</small></summary>
       <p className="meta">{space.pack === 'office' ? "It's 2 PM and the alarm goes off. How long does each person take to get from their desk" : "It's 2 AM and the alarm goes off. How long does each person take to get from bed"} to the nearest way out{design ? ', before and after the redesign' : ''}?</p>
       <button className="tool" onClick={run} disabled={busy}>{busy ? 'Timing…' : 'Run the fire drill'}</button>
       {error && <p className="bad">{error}</p>}
