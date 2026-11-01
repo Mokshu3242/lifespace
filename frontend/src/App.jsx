@@ -37,8 +37,7 @@ const STEPS = [
 ]
 
 const SAMPLES = [
-  { file: 'home-2bed-patio.jpg', pack: 'home', label: '2-bed with patio', describe: '2-bed apartment', icon: '🏠' },
-  { file: 'home-terrace.jpg', pack: 'home', label: 'Home with terrace', describe: '2-bed apartment with terrace', icon: '🌿' },
+  { file: 'home-terrace.jpg', pack: 'home', label: 'Home with terrace (best demo)', describe: '2-bed apartment with terrace', icon: '🌿' },
   { file: 'office.png', pack: 'office', label: 'Small office', describe: 'small office', icon: '🏢' },
   { file: 'street.jpg', pack: 'street', label: 'A city street', describe: '', icon: '🚏' },
 ]
