@@ -81,6 +81,26 @@ def _path(space_id: str, name: str) -> Path:
     return STORE / space_id / name
 
 
+def _find_read(sha: str, pack: str, describe: str) -> dict | None:
+    """The newest saved space made from exactly this picture, or None."""
+    import hashlib
+    best = None
+    for mp in STORE.glob("*/map.json"):
+        try:
+            m = json.loads(mp.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if (m.get("pack") or "home") != pack or (m.get("describe") or "") != describe:
+            continue
+        h = m.get("image_sha")
+        if h is None:
+            img = mp.parent / "plan.img"
+            h = hashlib.sha256(img.read_bytes()).hexdigest() if img.exists() else ""
+        if h == sha and (best is None or mp.stat().st_mtime > best[0]):
+            best = (mp.stat().st_mtime, m)
+    return _clean(best[1]) if best else None
+
+
 @router.post("")
 async def create_space(file: UploadFile = File(...),
                        fresh: bool = Query(False, description="ignore saved AI answers"),
@@ -92,6 +112,13 @@ async def create_space(file: UploadFile = File(...),
         raise HTTPException(413, "Image is over 15 MB")
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(415, "Upload an image (PNG or JPG)")
+    import hashlib
+    sha = hashlib.sha256(data).hexdigest()
+    if not fresh:
+        # the same picture was read before (same type and description): open that read, no model calls
+        old = _find_read(sha, pack, describe)
+        if old is not None:
+            return {**old, "reused": True}
     try:
         router_ = get_router()
         router_.fresh = fresh
@@ -109,7 +136,7 @@ async def create_space(file: UploadFile = File(...),
     folder.mkdir(parents=True)
     (folder / "plan.img").write_bytes(data)
     out = {"id": space_id, "provider": get_router().last_provider,
-           "pack": pack, "describe": describe, **smap.to_dict()}
+           "pack": pack, "describe": describe, "image_sha": sha, **smap.to_dict()}
     (folder / "map.json").write_text(json.dumps(out), encoding="utf-8")
     return out
 

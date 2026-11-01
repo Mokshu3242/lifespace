@@ -471,3 +471,28 @@ textarea { max-width: 100%; }
 .fix-list li { padding: 6px 8px; border-radius: 8px; background: var(--bg); }
 .fix-list li.rejected { opacity: 0.6; }
 .fix-list label { display: flex; gap: 6px; align-items: baseline; cursor: pointer; }
+/* three-column editor: tools on the left, a big map in the middle, steps on the right */
+.shell.wide { max-width: 1680px; }
+.editor.three { grid-template-columns: 200px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+.rail, .editor.three .sidebar { position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto; }
+.editor.three .sidebar { overscroll-behavior: contain; }
+.rail { display: grid; gap: 12px; }
+.rail-group { display: grid; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+.rail-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.rail .tool { width: 100%; text-align: left; }
+.rail .tabs { margin: 0; }
+.rail .toggle { margin: 0; }
+.rail-chips { flex-direction: column; align-items: stretch; margin: 0; }
+.rail-chips .chip-stat { border-radius: 8px; }
+.rail .meta, .rail .powered { font-size: 0.75rem; }
+.reused { color: var(--good); }
+.editor.three .editor-main .hint { margin-top: 0; }
+.editor.three .canvas-wrap { min-height: 60vh; }
+@media (max-width: 1200px) {
+  .editor.three { grid-template-columns: 170px minmax(0, 1fr) 320px; }
+}
+@media (max-width: 960px) {
+  .editor.three { grid-template-columns: 1fr; }
+  .rail, .editor.three .sidebar { position: static; max-height: none; }
+  .rail { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}

@@ -210,21 +210,16 @@ export default function PlanEditor({ space, onReset }) {
   const activeTool = TOOLS.find((t) => t.id === tool)
 
   return (
-    <div className="editor">
-      <div className="editor-main">
-        <div className="toolbar">
+    <div className="editor three">
+      <aside className="rail">
+        <div className="rail-group">
+          <span className="rail-title">View</span>
           <div className="tabs view-switch" role="tablist" aria-label="View">
             <button role="tab" aria-selected={view === '2d'} className={view === '2d' ? 'on' : ''} onClick={() => setView('2d')}>2D</button>
             <button role="tab" aria-selected={view === '3d'} className={view === '3d' ? 'on' : ''} onClick={() => setView('3d')}>3D</button>
           </div>
-          {view === '2d' && TOOLS.map((t) => (
-            <button key={t.id} className={tool === t.id ? 'tool on' : 'tool'} onClick={() => setTool(t.id)}>
-              {t.label}
-            </button>
-          ))}
-          {view === '2d' && <button className="tool" onClick={undo} disabled={!history.current.length}>Undo</button>}
           {((tab === 'redesign' && design) || (tab === 'people' && sim)) && (
-            <div className="tabs before-after on-map">
+            <div className="tabs before-after">
               <button className={!showAfter ? 'on' : ''} onClick={() => setShowAfter(false)}>Before</button>
               <button className={showAfter ? 'on' : ''} onClick={() => setShowAfter(true)}>After</button>
             </div>
@@ -234,6 +229,38 @@ export default function PlanEditor({ space, onReset }) {
             Show plan
           </label>
         </div>
+        {view === '2d' && (
+          <div className="rail-group">
+            <span className="rail-title">Edit the map</span>
+            {TOOLS.map((t) => (
+              <button key={t.id} className={tool === t.id ? 'tool on' : 'tool'} onClick={() => setTool(t.id)} title={t.hint}>
+                {t.label}
+              </button>
+            ))}
+            <button className="tool" onClick={undo} disabled={!history.current.length}>↶ Undo</button>
+          </div>
+        )}
+        <div className="rail-group">
+          <span className="rail-title">This plan</span>
+        <div className="chips rail-chips">
+          <span className="chip-stat"><b>{rooms.length}</b> rooms</span>
+          <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
+          <span className="chip-stat"><b>{doors.length}</b> doorways</span>
+          {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
+          <span className="chip-stat"><b>{items.length}</b> items found</span>
+          {design && <span className="chip-stat good-chip">Design {design.id}: <b>{design.changes?.length ?? 0}</b> changes</span>}
+          {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
+        </div>
+          <p className="meta">
+          {space.width_ft} × {space.height_ft} ft · 1 cell = {space.cell_in} in · scale {space.px_per_ft} px/ft
+          ({space.scale_source})
+          </p>
+          <p className={isMeta(space.provider) ? 'powered meta' : 'powered'}>Plan read by {modelLabel(space.provider)}</p>
+          {space.reused && <p className="meta reused">♻ Opened your saved read · no tokens used. Tick Fresh read on upload to read it again.</p>}
+        </div>
+      </aside>
+
+      <div className="editor-main">
         <p className="hint">{view === '3d' ? 'The same map in 3D. Switch to 2D to edit rooms and walls.' : activeTool.hint}</p>
         <div className="canvas-wrap">
           {view === '3d' ? (
@@ -255,20 +282,6 @@ export default function PlanEditor({ space, onReset }) {
             selectedItem={selectedItem} />
           )}
         </div>
-        <div className="chips">
-          <span className="chip-stat"><b>{rooms.length}</b> rooms</span>
-          <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
-          <span className="chip-stat"><b>{doors.length}</b> doorways</span>
-          {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
-          <span className="chip-stat"><b>{items.length}</b> items found</span>
-          {design && <span className="chip-stat good-chip">Design {design.id}: <b>{design.changes?.length ?? 0}</b> changes</span>}
-          {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
-        </div>
-        <p className="meta">
-          {space.width_ft} × {space.height_ft} ft · 1 cell = {space.cell_in} in · scale {space.px_per_ft} px/ft
-          ({space.scale_source})
-        </p>
-        <p className={isMeta(space.provider) ? 'powered meta' : 'powered'}>Plan read by {modelLabel(space.provider)}</p>
       </div>
 
       <aside className="sidebar">

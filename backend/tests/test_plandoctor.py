@@ -30,3 +30,16 @@ def test_merge_and_rename_and_bad_fix():
                          {"action": "rename", "room": 99, "name": "x"}, {"action": "explode"}])
     assert [x["ok"] for x in log] == [True, True, False, False]
     assert all(r["id"] != 2 for r in new["rooms"]) and any(r["name"] == "Living Room" for r in new["rooms"])
+
+
+def test_same_picture_opens_the_saved_read(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    from app.api import spaces
+    monkeypatch.setattr(spaces, "STORE", tmp_path)
+    d = tmp_path / "abcdefabcdef"; d.mkdir()
+    (d / "plan.img").write_bytes(b"PLAN")
+    (d / "map.json").write_text(json.dumps({"id": "abcdefabcdef", "pack": "home", "describe": "", "rooms": [], "grid": []}))
+    sha = hashlib.sha256(b"PLAN").hexdigest()
+    assert spaces._find_read(sha, "home", "")["id"] == "abcdefabcdef"
+    assert spaces._find_read(sha, "office", "") is None
