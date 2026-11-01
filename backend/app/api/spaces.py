@@ -55,7 +55,8 @@ def _clean(space: dict) -> dict:
             if r["id"] in drop or size[r["id"]] * ft2 >= 4:
                 continue
             m = g == r["id"]
-            ring = cv2.dilate(m.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~m
+            # look up to 3 cells out: slivers are often walled off by a thin line or a drawn item
+            ring = cv2.dilate(m.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool) & ~m
             near = [int(v) for v in g[ring] if v >= 0 and v not in drop and v != r["id"]]
             if near:
                 to = max(set(near), key=near.count)
