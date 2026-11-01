@@ -129,6 +129,29 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
     return out
 
 
+def basics_missing(space: dict, pack: str) -> list[str]:
+    """The cheap safety basics the scorecard checks for that the space doesn't have yet, room by room,
+    so a redesign can cover them first. Same rules as the Safety score."""
+    rooms, items = space.get("rooms", []), _active(space.get("items", []))
+    out = []
+    if pack != "home":
+        for item_id, label in (("extinguisher", "Fire extinguisher"), ("first-aid", "First aid cabinet")):
+            if not any(it.get("item") == item_id for it in items):
+                out.append(f"{label} (anywhere central)")
+        return out
+    sleep, baths = _named(rooms, "bedroom"), _named(rooms, "bath", "restroom", "wc")
+    for r in sleep:
+        if not _in(items, {"smoke-alarm"}, [r]):
+            out.append(f"Smoke alarm in {r['name']} (room {r['id']})")
+    for r in baths:
+        if not _in(items, {"grab-bar"}, [r]):
+            out.append(f"Bathroom grab bar in {r['name']} (room {r['id']})")
+    night_path = sleep + baths + _named(rooms, "hall", "foyer", "corridor")
+    if night_path and not _in(items, {"night-light"}, night_path):
+        out.append("Motion night light on the way from a bedroom to a bathroom")
+    return out
+
+
 def scorecard(space: dict, after_items: list[dict] | None, sim: dict | None) -> dict:
     pack = space.get("pack") or "home"
     before = score_side(space, space.get("items", []), (sim or {}).get("before", {}), pack)

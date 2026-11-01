@@ -266,5 +266,18 @@ def detect_items(gray: np.ndarray, grid: list[list[int]], rooms: list, px_per_ft
     return placed
 
 
+def dedupe(items: list[dict]) -> list[dict]:
+    """The same piece found twice (two outlines of one tub, a cooktop above its oven): keep the first."""
+    out: list[dict] = []
+    for it in items:
+        # same kind, same room, and the boxes overlap or touch (a cooktop drawn above its oven)
+        if any(o.get("item") == it.get("item") and o.get("room") == it.get("room")
+               and abs(o["x"] - it["x"]) <= (o["w"] + it["w"]) / 2 + 1
+               and abs(o["y"] - it["y"]) <= (o["d"] + it["d"]) / 2 + 1 for o in out):
+            continue
+        out.append(it)
+    return out
+
+
 def to_dicts(items: list[Placed]) -> list[dict]:
-    return [asdict(i) for i in items]
+    return dedupe([asdict(i) for i in items])

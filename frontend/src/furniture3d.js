@@ -201,12 +201,24 @@ const BY_ID = {
   'phone-booth': 'booth', 'acoustic-panel': 'panel', 'moss-wall': 'panel', divider: 'panel', whiteboard: 'panel',
   'screen-65': 'tv', monitor: 'panel', 'server-rack': 'block', printer: 'appliance', 'coffee-machine': 'appliance',
   'first-aid': 'panel', 'coat-rack': 'floorLamp',
+  'bath-mat': 'rug', 'mat-kitchen': 'rug', 'rug-gripper': 'rug', 'anti-slip-tape': 'rug', 'cord-cover': 'rug',
+  'raised-toilet-seat': 'cylinderThing', 'toilet-frame': 'chair', 'shower-chair': 'stool', 'tub-rail': 'grabBar',
+  'suction-handle': 'grabBar', 'bed-rail': 'grabBar', 'handheld-shower': 'grabBar', 'stick-lights': 'nightLight',
+  'led-under-cabinet': 'nightLight', 'doorbell-light': 'nightLight', 'co-alarm': 'smokeAlarm',
+  'baby-gate': 'panel', 'hook-rack': 'art', 'key-bowl': 'art', 'photo-frames': 'art', 'magnetic-strip': 'art',
+  'over-door-organizer': 'panel', 'under-bed-bins': 'storage', 'laundry-hamper': 'cylinderThing',
+  'trash-pedal': 'cylinderThing', 'step-stool': 'stool', 'small-plant': 'plant', 'throw-blanket': 'block',
+  'desk-lamp-home': 'tableLamp', 'white-noise': 'cylinderThing', 'extinguisher-home': 'cylinderThing',
+  'fire-blanket': 'panel', 'first-aid-home': 'panel', 'big-button-phone': 'block', 'cushion-firm': 'block',
 }
 // mounting height (inches above the floor) for things on walls and ceilings
-const HANG_IN = { 'grab-bar': 34, 'night-light': 14, 'smoke-alarm': 94, 'ceiling-fan': 88, pendant: 80,
+const HANG_IN = { 'co-alarm': 94, 'tub-rail': 18, 'suction-handle': 40, 'stick-lights': 14, 'hook-rack': 60,
+  'key-bowl': 48, 'photo-frames': 56, 'magnetic-strip': 50, 'first-aid-home': 48, 'fire-blanket': 48, 'led-under-cabinet': 54,
+  'doorbell-light': 60, 'handheld-shower': 60, 'grab-bar': 34, 'night-light': 14, 'smoke-alarm': 94, 'ceiling-fan': 88, pendant: 80,
   'pendant-office': 84, 'smart-bulbs': 86, 'string-lights': 84, 'wall-art': 56, 'wall-art-office': 56, mirror: 30,
   curtains: 6, blackout: 6, 'acoustic-panel': 48, 'moss-wall': 48, 'first-aid': 48, monitor: 30, whiteboard: 20 }
-const MATERIAL_BY_ID = { extinguisher: RED, 'server-rack': BLACK, 'space-heater': WHITE, 'window-ac': WHITE,
+const MATERIAL_BY_ID = { 'extinguisher-home': RED, 'fire-blanket': RED, 'baby-gate': WHITE, 'over-door-organizer': FABRIC,
+  'raised-toilet-seat': WHITE, 'laundry-hamper': WARMFABRIC, 'trash-pedal': STEEL, 'throw-blanket': WARMFABRIC, extinguisher: RED, 'server-rack': BLACK, 'space-heater': WHITE, 'window-ac': WHITE,
   'first-aid': WHITE, 'moss-wall': GREEN, whiteboard: WHITE, 'kitchen-island': WOOD, 'reception-desk': WOOD }
 
 /**
@@ -250,3 +262,10 @@ export function facingFor(it, grid) {
   sides.sort((a, b) => b[0] - a[0])
   return sides[0][1]
 }
+
+/** What a person does with an item: lie on a bed, sit on seats, use counters and tables. */
+const ACT = { bed: 'lie', sofa: 'sit', armchair: 'sit', chair: 'sit', stool: 'sit', toilet: 'sit', booth: 'sit',
+  table: 'use', desk: 'use', vanity: 'use', range: 'use', fridge: 'use', tv: 'watch', appliance: 'use', tub: 'use',
+  shelves: 'use', storage: 'use' }
+export function actionFor(itemId) { return ACT[BY_ID[itemId] || 'block'] || null }
+export function kindOf(itemId) { return BY_ID[itemId] || 'block' }

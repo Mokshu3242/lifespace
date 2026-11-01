@@ -21,7 +21,8 @@ PATH_IN = 24            # a clear path at least this wide must reach every room
 DOOR_CLEAR_IN = 30      # keep this much floor clear inside every doorway
 WALL_ITEMS = {"bed", "storage", "media", "appliance", "fixture"}   # go against a wall
 MOUNTED = {"safety"}
-BUILT_IN = {"fixture", "appliance"}   # toilets, tubs, stoves, fridges: a redesign never removes or swaps these    # on a wall or ceiling; no floor footprint
+MOUNTED |= {"access", "energy", "health"}   # small things on a wall, door or shelf; no floor footprint
+BUILT_IN = {"fixture", "appliance"}   # toilets, tubs, stoves, fridges: a redesign never removes or swaps these
 
 PROMPT = """{context}You are redesigning this space so the people who use it live or work better in it.
 Budget: ${budget} for everything you add or replace.
@@ -37,9 +38,14 @@ Items already there (id, name, room, size in feet):
 Catalog. You may ONLY use these item ids. Sizes are width x depth in feet:
 {catalog}
 
-Make 5 to 10 changes. The user's goals come first: every change should serve them, and the
+The safety check finds these basics missing. Cover each one first if the budget allows; they are cheap
+and they count most: {basics}
+
+Make 6 to 14 changes. The user's goals come first: every change should serve them, and the
 reason should say how. Then think about safety, comfort, light and air, and what each room is for.
-Use most of the budget if it helps, but never go over. Use the exact room id of the room the item goes in.
+Spread the money: many cheap, useful fixes (under $40 each) usually help more than one big item, so
+cover every room that needs help before buying anything expensive. No single item may cost more than a
+quarter of the budget. Use most of the budget if it helps, but never go over. Use the exact room id of the room the item goes in.
 Rooms usually already have their main furniture (a bed in a bedroom, a sofa in a living room) even if the
 list above misses it, so prefer what is missing and what serves the goals. If the goals mention safety,
 include the cheap safety items (grab bars, night lights, smoke alarms) where they matter.
@@ -220,9 +226,11 @@ def find_spot(grid: np.ndarray, free: np.ndarray, room: int, item: catalog.Item,
     return {"x": c + w / 2, "y": r + d / 2, "w": float(w), "d": float(d)}
 
 
-CEILING = {"ceiling-fan", "pendant", "pendant-office", "smart-bulbs", "smoke-alarm"}
-NEAR_WET = {"grab-bar"}                       # next to the toilet or tub
-NEAR_DOOR = {"night-light"}                   # where people walk in the dark
+CEILING = {"ceiling-fan", "pendant", "pendant-office", "smart-bulbs", "smoke-alarm", "co-alarm"}
+NEAR_WET = {"grab-bar", "raised-toilet-seat", "toilet-frame", "shower-chair", "handheld-shower",
+            "tub-rail", "suction-handle", "bath-mat"}                       # next to the toilet or tub
+NEAR_DOOR = {"night-light", "stick-lights", "lever-handles", "door-wedge", "doorbell-light", "hook-rack",
+             "key-bowl", "draft-stopper", "baby-gate"}                   # where people walk in the dark
 
 
 def mounted_spot(grid: np.ndarray, room: int, item: catalog.Item, items: list[dict],
@@ -304,6 +312,10 @@ def _describe(space: dict, pack: str, budget: float = 1e9) -> tuple[str, str, st
     return "\n".join(rooms), "\n".join(items), "\n".join(cat)
 
 
+MAX_SHARE = 0.25          # one item can take at most a quarter of the budget in the first pass
+MAX_TRIED = 16            # 2^16 sets is still quick
+
+
 def pick_within_budget(raws: list[dict], pack: str, budget: float) -> set[int]:
     """Which changes to try first. The list is in priority order; pick the set worth the most
     that fits the budget, so one expensive item can't crowd out five cheap useful ones.
@@ -312,12 +324,13 @@ def pick_within_budget(raws: list[dict], pack: str, budget: float) -> set[int]:
     for i, r in enumerate(raws):
         c = catalog.get(pack, str(r.get("item") or ""))
         if str(r.get("action") or "").lower() in ("add", "replace") and c is not None:
-            if c.price_usd > 0.5 * budget:
+            if c.price_usd > MAX_SHARE * budget:
                 continue        # waits for leftover money; one item shouldn't take most of the budget
             priced.append((i, c.price_usd, len(raws) - i))
     free = {i for i, r in enumerate(raws)
             if not (str(r.get("action") or "").lower() in ("add", "replace")
                     and catalog.get(pack, str(r.get("item") or "")) is not None)}
+    priced = priced[:MAX_TRIED]
     best, best_key = set(), (-1.0, 0.0)
     for mask in range(1 << len(priced)):
         cost = worth = 0.0
@@ -340,7 +353,9 @@ def redesign(space: dict, budget: float, goals: str, router, context: str = "") 
     rooms_txt, items_txt, cat_txt = _describe(space, pack, budget)
     goals = goals.replace("<", "").replace(">", "").replace("`", "")
 
-    ans = router.ask_json(PROMPT.format(context=context, budget=int(budget), goals=goals or "none given",
+    from app.space.scorecard import basics_missing
+    basics = "\n".join("- " + b for b in basics_missing(space, pack)) or "none, the basics are covered"
+    ans = router.ask_json(PROMPT.format(context=context, budget=int(budget), goals=goals or "none given", basics=basics,
                                         rooms=rooms_txt, items=items_txt, catalog=cat_txt))
     design = Design(summary=str(ans.get("summary") or ""), budget_usd=budget, spent_usd=0, items=items,
                     thoughts=[str(t)[:140] for t in (ans.get("thoughts") or [])[:4] if t])

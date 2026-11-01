@@ -15,6 +15,14 @@ from app.space.reader import read_floor_plan
 router = APIRouter(prefix="/api/spaces", tags=["spaces"])
 STORE = ROOT / ".data" / "spaces"
 STORE.mkdir(parents=True, exist_ok=True)
+
+
+def _clean(space: dict) -> dict:
+    """Spaces saved before duplicates were merged: merge them when loading."""
+    from app.space.items import dedupe
+    if space.get("items"):
+        space["items"] = dedupe(space["items"])
+    return space
 MAX_BYTES = 15 * 1024 * 1024
 ID_RE = re.compile(r"^[a-f0-9]{12}$")
 
@@ -63,7 +71,7 @@ def get_space(space_id: str):
     p = _path(space_id, "map.json")
     if not p.exists():
         raise HTTPException(404, "Space not found")
-    return json.loads(p.read_text(encoding="utf-8"))
+    return _clean(json.loads(p.read_text(encoding="utf-8")))
 
 
 @router.get("/{space_id}/image")
@@ -113,7 +121,7 @@ def create_design(space_id: str, ask: RedesignAsk):
         raise HTTPException(404, "Space not found")
     if not 50 <= ask.budget <= 100_000:
         raise HTTPException(400, "Budget must be between $50 and $100,000")
-    space = json.loads(p.read_text(encoding="utf-8"))
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
     goals = " ".join(ask.goals.split())[:300]
     try:
         design = redesign(space, ask.budget, goals, get_router(),
@@ -160,7 +168,7 @@ def run_simulation(space_id: str, ask: SimulateAsk):
     p = _path(space_id, "map.json")
     if not p.exists():
         raise HTTPException(404, "Space not found")
-    space = json.loads(p.read_text(encoding="utf-8"))
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
     after, changes = None, []
     if ask.design_id is not None:
         dp = _path(space_id, "designs") / f"{int(ask.design_id)}.json"
@@ -194,7 +202,7 @@ def render_room(space_id: str, design_id: int, ask: RenderAsk):
     dp = _path(space_id, "designs") / f"{int(design_id)}.json"
     if not (p.exists() and dp.exists()):
         raise HTTPException(404, "Design not found")
-    space = json.loads(p.read_text(encoding="utf-8"))
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
     if not any(r["id"] == ask.room_id for r in space["rooms"]):
         raise HTTPException(404, "Room not found")
     out = dp.parent / f"{int(design_id)}_room{int(ask.room_id)}.png"
@@ -241,7 +249,7 @@ def describe_family(space_id: str, ask: FamilyAsk):
     text = " ".join(ask.text.split())
     if not 3 <= len(text) <= 600:
         raise HTTPException(400, "Describe the people in 3 to 600 characters")
-    space = json.loads(p.read_text(encoding="utf-8"))
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
     router_ = get_router()
     try:
         ans = router_.ask_json(family_prompt(text, space["rooms"],
@@ -315,7 +323,7 @@ def _run_improve(job: str, space_id: str, p: Path, ask: ImproveAsk) -> None:
         events.append({"kind": kind, **kw})
 
     try:
-        space = json.loads(p.read_text(encoding="utf-8"))
+        space = _clean(json.loads(p.read_text(encoding="utf-8")))
         fam = p.parent / "family.json"
         people = json.loads(fam.read_text(encoding="utf-8"))["people"] if fam.exists() else None
         goals = " ".join(ask.goals.split())[:300]

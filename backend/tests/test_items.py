@@ -74,3 +74,23 @@ def test_prompt_carries_symbol_hints():
     r = Voters({"a": "bed-queen"})
     items.detect_items(plan_with_bed(), grid, rooms, PPF, 6, "home", r)
     assert "quarter-circle arc (door swing)" in r.prompts[0]
+
+
+def test_dedupe_merges_same_item_found_twice():
+    from app.space.items import dedupe
+    a = {"item": "tub", "x": 10, "y": 10, "w": 5, "d": 10, "room": 1}
+    b = {"item": "tub", "x": 11, "y": 12, "w": 5, "d": 10, "room": 1}
+    c = {"item": "tub", "x": 40, "y": 10, "w": 5, "d": 10, "room": 1}
+    d = {"item": "tub", "x": 12, "y": 10, "w": 5, "d": 10, "room": 2}     # a second bathroom keeps its tub
+    assert dedupe([a, b, c, d]) == [a, c, d]
+    stove = {"item": "range", "x": 51.5, "y": 40.5, "w": 3.0, "d": 4.4, "room": 2}
+    oven = {"item": "range", "x": 51.8, "y": 44.9, "w": 3.6, "d": 3.7, "room": 2}
+    assert dedupe([stove, oven]) == [stove]
+
+
+def test_basics_missing_lists_rooms():
+    from app.space.scorecard import basics_missing
+    space = {"rooms": [{"id": 1, "name": "Master Bedroom"}, {"id": 2, "name": "Bath"}], "items": []}
+    got = basics_missing(space, "home")
+    assert any("Smoke alarm in Master Bedroom" in g for g in got)
+    assert any("grab bar in Bath" in g for g in got)

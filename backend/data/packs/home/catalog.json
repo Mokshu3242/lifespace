@@ -1126,6 +1126,989 @@
     "light",
     "style"
    ]
+  },
+  {
+   "id": "bath-mat",
+   "name": "Non-slip bath mat",
+   "category": "safety",
+   "size_in": {
+    "w": 16,
+    "d": 28,
+    "h": 0
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "anti-slip-tape",
+   "name": "Anti-slip floor tape",
+   "category": "safety",
+   "size_in": {
+    "w": 24,
+    "d": 2,
+    "h": 0
+   },
+   "price_usd": 12,
+   "watts": 0,
+   "rooms": [
+    "bathroom",
+    "kitchen",
+    "hallway",
+    "foyer",
+    "terrace",
+    "balcony"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "rug-gripper",
+   "name": "Rug gripper pads",
+   "category": "safety",
+   "size_in": {
+    "w": 4,
+    "d": 4,
+    "h": 0
+   },
+   "price_usd": 12,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "hallway",
+    "foyer"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "lever-handles",
+   "name": "Lever door handles (2)",
+   "category": "safety",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 3
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "raised-toilet-seat",
+   "name": "Raised toilet seat",
+   "category": "safety",
+   "size_in": {
+    "w": 16,
+    "d": 18,
+    "h": 5
+   },
+   "price_usd": 35,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "toilet-frame",
+   "name": "Toilet safety frame",
+   "category": "safety",
+   "size_in": {
+    "w": 24,
+    "d": 18,
+    "h": 30
+   },
+   "price_usd": 45,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "shower-chair",
+   "name": "Shower chair",
+   "category": "safety",
+   "size_in": {
+    "w": 18,
+    "d": 16,
+    "h": 20
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "handheld-shower",
+   "name": "Handheld shower head",
+   "category": "safety",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 3
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "tub-rail",
+   "name": "Tub clamp-on rail",
+   "category": "safety",
+   "size_in": {
+    "w": 4,
+    "d": 12,
+    "h": 16
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "bed-rail",
+   "name": "Bed assist rail",
+   "category": "safety",
+   "size_in": {
+    "w": 20,
+    "d": 4,
+    "h": 30
+   },
+   "price_usd": 45,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "reacher",
+   "name": "Long-handle reacher",
+   "category": "access",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 32
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "access"
+   ]
+  },
+  {
+   "id": "stick-lights",
+   "name": "Motion stick-on lights (3)",
+   "category": "light",
+   "size_in": {
+    "w": 3,
+    "d": 2,
+    "h": 3
+   },
+   "price_usd": 20,
+   "watts": 1,
+   "rooms": [
+    "hallway",
+    "bedroom",
+    "closet",
+    "kitchen",
+    "stairs"
+   ],
+   "uses": [
+    "light",
+    "safety"
+   ]
+  },
+  {
+   "id": "lamp-timer",
+   "name": "Plug-in lamp timer",
+   "category": "energy",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 3
+   },
+   "price_usd": 10,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "light",
+    "energy"
+   ]
+  },
+  {
+   "id": "smart-plug",
+   "name": "Smart plugs (2)",
+   "category": "energy",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 3
+   },
+   "price_usd": 20,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "energy"
+   ]
+  },
+  {
+   "id": "led-under-cabinet",
+   "name": "Under-cabinet LED strip",
+   "category": "light",
+   "size_in": {
+    "w": 24,
+    "d": 1,
+    "h": 1
+   },
+   "price_usd": 25,
+   "watts": 6,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "light",
+    "safety"
+   ]
+  },
+  {
+   "id": "cord-cover",
+   "name": "Cord cover kit",
+   "category": "safety",
+   "size_in": {
+    "w": 60,
+    "d": 2,
+    "h": 0
+   },
+   "price_usd": 12,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "office"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "corner-guards",
+   "name": "Soft corner guards (8)",
+   "category": "safety",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 2
+   },
+   "price_usd": 10,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "dining area",
+    "bedroom"
+   ],
+   "uses": [
+    "safety",
+    "kids"
+   ]
+  },
+  {
+   "id": "outlet-covers",
+   "name": "Outlet covers (24)",
+   "category": "safety",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 1
+   },
+   "price_usd": 8,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "safety",
+    "kids"
+   ]
+  },
+  {
+   "id": "furniture-anchors",
+   "name": "Furniture anti-tip anchors (4)",
+   "category": "safety",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 2
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "safety",
+    "kids"
+   ]
+  },
+  {
+   "id": "cabinet-locks",
+   "name": "Child cabinet locks (10)",
+   "category": "safety",
+   "size_in": {
+    "w": 2,
+    "d": 2,
+    "h": 1
+   },
+   "price_usd": 12,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "bathroom"
+   ],
+   "uses": [
+    "safety",
+    "kids"
+   ]
+  },
+  {
+   "id": "baby-gate",
+   "name": "Pressure-mounted gate",
+   "category": "safety",
+   "size_in": {
+    "w": 30,
+    "d": 3,
+    "h": 30
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "hallway",
+    "kitchen",
+    "foyer",
+    "stairs"
+   ],
+   "uses": [
+    "safety",
+    "kids"
+   ]
+  },
+  {
+   "id": "door-wedge",
+   "name": "Door stop wedge (2)",
+   "category": "access",
+   "size_in": {
+    "w": 3,
+    "d": 2,
+    "h": 1
+   },
+   "price_usd": 8,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "access"
+   ]
+  },
+  {
+   "id": "doorbell-light",
+   "name": "Doorbell with flashing light",
+   "category": "access",
+   "size_in": {
+    "w": 3,
+    "d": 2,
+    "h": 4
+   },
+   "price_usd": 30,
+   "watts": 1,
+   "rooms": [
+    "foyer",
+    "hallway",
+    "living room"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "fire-blanket",
+   "name": "Kitchen fire blanket",
+   "category": "safety",
+   "size_in": {
+    "w": 8,
+    "d": 2,
+    "h": 10
+   },
+   "price_usd": 20,
+   "watts": 0,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "extinguisher-home",
+   "name": "Home fire extinguisher",
+   "category": "safety",
+   "size_in": {
+    "w": 6,
+    "d": 6,
+    "h": 16
+   },
+   "price_usd": 35,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "hallway",
+    "foyer"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "co-alarm",
+   "name": "Carbon monoxide alarm",
+   "category": "safety",
+   "size_in": {
+    "w": 5,
+    "d": 2,
+    "h": 5
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "hallway",
+    "hall",
+    "living room"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "first-aid-home",
+   "name": "First aid kit",
+   "category": "safety",
+   "size_in": {
+    "w": 10,
+    "d": 4,
+    "h": 8
+   },
+   "price_usd": 25,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "bathroom",
+    "hallway"
+   ],
+   "uses": [
+    "safety"
+   ]
+  },
+  {
+   "id": "hook-rack",
+   "name": "Wall hook rack",
+   "category": "storage",
+   "size_in": {
+    "w": 24,
+    "d": 3,
+    "h": 6
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "foyer",
+    "hallway",
+    "bathroom",
+    "bedroom"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "over-door-organizer",
+   "name": "Over-the-door organizer",
+   "category": "storage",
+   "size_in": {
+    "w": 18,
+    "d": 4,
+    "h": 60
+   },
+   "price_usd": 20,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "bathroom",
+    "closet",
+    "pantry"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "under-bed-bins",
+   "name": "Under-bed storage bins (2)",
+   "category": "storage",
+   "size_in": {
+    "w": 30,
+    "d": 18,
+    "h": 6
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "lazy-susan",
+   "name": "Turntable organizer",
+   "category": "storage",
+   "size_in": {
+    "w": 12,
+    "d": 12,
+    "h": 3
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "pantry"
+   ],
+   "uses": [
+    "store",
+    "access"
+   ]
+  },
+  {
+   "id": "step-stool",
+   "name": "Step stool with handle",
+   "category": "access",
+   "size_in": {
+    "w": 18,
+    "d": 16,
+    "h": 24
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "closet",
+    "pantry"
+   ],
+   "uses": [
+    "access",
+    "safety"
+   ]
+  },
+  {
+   "id": "pill-organizer",
+   "name": "Large pill organizer",
+   "category": "health",
+   "size_in": {
+    "w": 10,
+    "d": 4,
+    "h": 2
+   },
+   "price_usd": 10,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "bedroom"
+   ],
+   "uses": [
+    "health"
+   ]
+  },
+  {
+   "id": "big-button-phone",
+   "name": "Big-button cordless phone",
+   "category": "access",
+   "size_in": {
+    "w": 5,
+    "d": 5,
+    "h": 6
+   },
+   "price_usd": 35,
+   "watts": 2,
+   "rooms": [
+    "bedroom",
+    "living room"
+   ],
+   "uses": [
+    "safety",
+    "access"
+   ]
+  },
+  {
+   "id": "chair-riser",
+   "name": "Furniture risers (4)",
+   "category": "access",
+   "size_in": {
+    "w": 4,
+    "d": 4,
+    "h": 3
+   },
+   "price_usd": 20,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "access"
+   ]
+  },
+  {
+   "id": "cushion-firm",
+   "name": "Firm seat cushion",
+   "category": "comfort",
+   "size_in": {
+    "w": 18,
+    "d": 18,
+    "h": 3
+   },
+   "price_usd": 25,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "dining area",
+    "office"
+   ],
+   "uses": [
+    "comfort",
+    "access"
+   ]
+  },
+  {
+   "id": "blackout-film",
+   "name": "Window privacy film",
+   "category": "decor",
+   "size_in": {
+    "w": 36,
+    "d": 1,
+    "h": 1
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "bathroom"
+   ],
+   "uses": [
+    "sleep",
+    "quiet"
+   ]
+  },
+  {
+   "id": "draft-stopper",
+   "name": "Door draft stopper",
+   "category": "energy",
+   "size_in": {
+    "w": 36,
+    "d": 3,
+    "h": 3
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "energy",
+    "quiet"
+   ]
+  },
+  {
+   "id": "door-seal",
+   "name": "Window and door seal kit",
+   "category": "energy",
+   "size_in": {
+    "w": 3,
+    "d": 3,
+    "h": 1
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "energy",
+    "quiet"
+   ]
+  },
+  {
+   "id": "white-noise",
+   "name": "White noise machine",
+   "category": "comfort",
+   "size_in": {
+    "w": 5,
+    "d": 5,
+    "h": 3
+   },
+   "price_usd": 25,
+   "watts": 3,
+   "rooms": [
+    "bedroom"
+   ],
+   "uses": [
+    "sleep",
+    "quiet"
+   ]
+  },
+  {
+   "id": "desk-lamp-home",
+   "name": "Desk lamp (LED)",
+   "category": "light",
+   "size_in": {
+    "w": 6,
+    "d": 6,
+    "h": 16
+   },
+   "price_usd": 25,
+   "watts": 6,
+   "rooms": [
+    "bedroom",
+    "office",
+    "living room"
+   ],
+   "uses": [
+    "light",
+    "work"
+   ]
+  },
+  {
+   "id": "throw-blanket",
+   "name": "Throw blanket and pillows",
+   "category": "decor",
+   "size_in": {
+    "w": 20,
+    "d": 20,
+    "h": 6
+   },
+   "price_usd": 40,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom"
+   ],
+   "uses": [
+    "comfort",
+    "style"
+   ]
+  },
+  {
+   "id": "small-plant",
+   "name": "Small plant set (3)",
+   "category": "decor",
+   "size_in": {
+    "w": 18,
+    "d": 6,
+    "h": 10
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "*"
+   ],
+   "uses": [
+    "comfort",
+    "air"
+   ]
+  },
+  {
+   "id": "photo-frames",
+   "name": "Photo frame set",
+   "category": "decor",
+   "size_in": {
+    "w": 24,
+    "d": 2,
+    "h": 16
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "living room",
+    "bedroom",
+    "hallway"
+   ],
+   "uses": [
+    "comfort",
+    "style"
+   ]
+  },
+  {
+   "id": "laundry-hamper",
+   "name": "Laundry hamper",
+   "category": "storage",
+   "size_in": {
+    "w": 16,
+    "d": 14,
+    "h": 24
+   },
+   "price_usd": 25,
+   "watts": 0,
+   "rooms": [
+    "bedroom",
+    "bathroom",
+    "closet"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "magnetic-strip",
+   "name": "Magnetic knife and tool strip",
+   "category": "storage",
+   "size_in": {
+    "w": 18,
+    "d": 2,
+    "h": 2
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "store",
+    "safety"
+   ]
+  },
+  {
+   "id": "trash-pedal",
+   "name": "Step trash can",
+   "category": "storage",
+   "size_in": {
+    "w": 14,
+    "d": 12,
+    "h": 26
+   },
+   "price_usd": 35,
+   "watts": 0,
+   "rooms": [
+    "kitchen",
+    "bathroom"
+   ],
+   "uses": [
+    "clean"
+   ]
+  },
+  {
+   "id": "mat-kitchen",
+   "name": "Anti-fatigue kitchen mat",
+   "category": "comfort",
+   "size_in": {
+    "w": 20,
+    "d": 32,
+    "h": 0
+   },
+   "price_usd": 30,
+   "watts": 0,
+   "rooms": [
+    "kitchen"
+   ],
+   "uses": [
+    "comfort",
+    "safety"
+   ]
+  },
+  {
+   "id": "key-bowl",
+   "name": "Entry tray and key hooks",
+   "category": "storage",
+   "size_in": {
+    "w": 12,
+    "d": 3,
+    "h": 6
+   },
+   "price_usd": 15,
+   "watts": 0,
+   "rooms": [
+    "foyer",
+    "hallway"
+   ],
+   "uses": [
+    "store"
+   ]
+  },
+  {
+   "id": "suction-handle",
+   "name": "Suction shower grab handle",
+   "category": "safety",
+   "size_in": {
+    "w": 12,
+    "d": 3,
+    "h": 4
+   },
+   "price_usd": 20,
+   "watts": 0,
+   "rooms": [
+    "bathroom"
+   ],
+   "uses": [
+    "safety"
+   ]
   }
  ]
 }
