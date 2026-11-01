@@ -15,6 +15,16 @@ export const api = {
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
   listSpaces: () => fetch('/api/spaces').then(handle),
+  ask: (id, question, designId) =>
+    fetch(`/api/spaces/${id}/ask`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, design_id: designId ?? null }),
+    }).then(handle),
+  fireDrill: (id, designId) =>
+    fetch(`/api/spaces/${id}/firedrill`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ design_id: designId ?? null }),
+    }).then(handle),
   future: (id, years, designId) =>
     fetch(`/api/spaces/${id}/future`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

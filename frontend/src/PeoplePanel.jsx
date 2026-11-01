@@ -3,6 +3,8 @@ import { api } from './api'
 import { isMeta, modelLabel } from './mapStyle'
 import ScoreCard from './ScoreCard'
 import FuturePanel from './FuturePanel'
+import FireDrill from './FireDrill'
+import AskPanel from './AskPanel'
 
 /** AI people live a day Before and After. Numbers come from code; voices from the model. */
 export default function PeoplePanel({ space, design, sim, onSim, showAfter, playing, onPlay, focus, onFocus, clock }) {
@@ -82,6 +84,8 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
       <button onClick={run} disabled={busy}>{busy ? 'Living the day…' : sim ? 'Run again' : 'Run a day'}</button>
       {error && <p className="bad">{error}</p>}
       <FuturePanel space={space} design={design} showAfter={showAfter} />
+      <FireDrill space={space} design={design} />
+      <AskPanel space={space} design={design} showAfter={showAfter} />
 
       {sim && (
         <>

@@ -344,3 +344,17 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .future-scores div { display: flex; flex-direction: column; font-size: 13px; }
 .future-scores .down { color: #c0392b; font-style: normal; }
 .future-scores .up { color: #2f9e6b; font-style: normal; }
+.drill { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0; }
+.drill th { text-align: right; font-weight: 600; opacity: 0.7; }
+.drill td { padding: 4px 0; vertical-align: top; }
+.drill td + td { text-align: right; padding-left: 8px; white-space: nowrap; }
+.ask-ideas { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.ask-ideas .chip { font-size: 12px; padding: 4px 8px; border-radius: 12px; border: 1px solid rgba(127,127,127,0.35); background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.ask .future-row input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(127,127,127,0.35); background: transparent; color: inherit; }
+.ask-answer { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(127,127,127,0.2); }
+.ask-answer p { margin: 4px 0; font-size: 13px; }
+.verdict { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin-right: 4px; }
+.v-yes { background: #2f9e6b33; color: #2f9e6b; }
+.v-no { background: #c0392b33; color: #e0614f; }
+.v-partly { background: #d9a23033; color: #d9a230; }
+.v-not-measured { background: rgba(127,127,127,0.2); }
