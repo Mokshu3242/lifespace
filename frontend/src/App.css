@@ -358,3 +358,4 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .v-no { background: #c0392b33; color: #e0614f; }
 .v-partly { background: #d9a23033; color: #d9a230; }
 .v-not-measured { background: rgba(127,127,127,0.2); }
+.ask-text { display: block; line-height: 1.45; }

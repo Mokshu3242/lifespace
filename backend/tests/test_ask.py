@@ -20,4 +20,4 @@ def test_facts_include_rooms_people_and_drill():
 
 def test_answer_keeps_only_real_fact_numbers():
     out = ask(_space(3), "Can Asha live here?", None, PEOPLE, Fake())
-    assert out["verdict"] == "no" and out["facts"] == ["Room: Bedroom (room), about 112 sq ft"]
+    assert out["verdict"] == "no" and out["facts"] == ["Room: Bedroom (room), about 112 sq ft, no outside wall"]

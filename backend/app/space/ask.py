@@ -32,9 +32,15 @@ def gather_facts(space: dict, items: list[dict] | None, people: list[dict] | Non
     people = people or list(load_personas(pack))
     ft2 = (space["cell_in"] / 12) ** 2
     facts = []
+    import cv2
+    import numpy as np
+    g = np.array(space["grid"])
+    k = 2 * int(np.ceil(30 / space["cell_in"])) + 1
+    outside = cv2.dilate((g == -2).astype(np.uint8), np.ones((k, k), np.uint8)).astype(bool)
     for r in space.get("rooms", []):
-        n = sum(row.count(r["id"]) for row in space["grid"])
-        facts.append(f"Room: {r['name']} ({r.get('kind', 'room')}), about {n * ft2:.0f} sq ft")
+        m = g == r["id"]
+        wall = "has an outside wall (windows likely)" if (outside & m).any() else "no outside wall"
+        facts.append(f"Room: {r['name']} ({r.get('kind', 'room')}), about {m.sum() * ft2:.0f} sq ft, {wall}")
     for d in space.get("doors") or []:
         names = [next((r["name"] for r in space["rooms"] if r["id"] == i), "?") for i in d.get("rooms", [])]
         where = " to ".join(names) + (" to outside" if d.get("outside") else "")

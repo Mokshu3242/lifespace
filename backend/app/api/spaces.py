@@ -33,6 +33,24 @@ def _clean(space: dict) -> dict:
             if len(ys):
                 j = int(np.argmin((ys - d["y"]) ** 2 + (xs - d["x"]) ** 2))
                 space["entrance"] = [int(xs[j]), int(ys[j])]
+    # a tiny sliver with the same name as a bigger room (two "Kitchen"s) is part of that room
+    rooms = space.get("rooms") or []
+    if rooms and space.get("grid"):
+        import numpy as np
+        g = np.array(space["grid"])
+        ft2 = (space.get("cell_in", 6) / 12) ** 2
+        size = {r["id"]: int((g == r["id"]).sum()) for r in rooms}
+        drop = set()
+        for r in rooms:
+            twins = [o for o in rooms if o is not r and o["name"].lower() == r["name"].lower() and o["id"] not in drop]
+            if twins and size[r["id"]] * ft2 < 12:
+                big = max(twins, key=lambda o: size[o["id"]])
+                if size[big["id"]] > size[r["id"]]:
+                    g[g == r["id"]] = big["id"]
+                    drop.add(r["id"])
+        if drop:
+            space["rooms"] = [r for r in rooms if r["id"] not in drop]
+            space["grid"] = g.tolist()
     return space
 MAX_BYTES = 15 * 1024 * 1024
 ID_RE = re.compile(r"^[a-f0-9]{12}$")

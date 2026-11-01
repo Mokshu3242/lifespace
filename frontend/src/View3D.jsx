@@ -48,6 +48,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
   const [orbit, setOrbit] = useState(false)
   const [fullWalls, setFullWalls] = useState(false)
   const [lived, setLived] = useState(true)
+  const [night, setNight] = useState(false)     // 2 AM: lights off, only night lights glow
   const [typical, setTypical] = useState(true)   // fill empty rooms with obvious furniture (picture only)
   const [rider, setRider] = useState(null)        // walk id being ridden
   const [hud, setHud] = useState(null)
@@ -75,7 +76,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     controls.maxPolarAngle = Math.PI / 2.1
     controls.enableDamping = true
 
-    scene.add(new THREE.HemisphereLight(0xfff6e8, 0x8a8577, 1.5))
+    const hemi = new THREE.HemisphereLight(0xfff6e8, 0x8a8577, 1.5)
+    scene.add(hemi)
     const sun = new THREE.DirectionalLight(0xfff2dd, 1.6)
     sun.position.set(cols * 0.3, Math.max(cols, rows) * 1.2, rows * 0.1)
     sun.castShadow = true
@@ -287,7 +289,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
-    three.current = { renderer, scene, camera, controls, groups, rows, cols }
+    three.current = { renderer, scene, camera, controls, groups, rows, cols, hemi, sun }
     dollhouse()
     return () => {
       cancelAnimationFrame(raf)
@@ -556,7 +558,9 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
         }
       }
       // even indoor light so walls don't go brown, then a soft warm light in each room
-      t.groups.walls.add(new THREE.AmbientLight(0xfff8ee, rider ? 1.1 : 0.5))
+      const amb = new THREE.AmbientLight(0xfff8ee, rider ? 1.1 : 0.5)
+      amb.userData.day = amb.intensity
+      t.groups.walls.add(amb)
       const sums = {}
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
         const v = grid[r][c]
@@ -567,6 +571,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
         if (n < 60) continue
         const light = new THREE.PointLight(0xffd9a8, 0.9, 60, 1.2)
         light.position.set(sc / n, 84 / cell, sr / n)
+        light.userData.day = light.intensity
         t.groups.walls.add(light)
       }
     }
@@ -575,9 +580,26 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       const ceil = new THREE.Mesh(new THREE.PlaneGeometry(cols, rows), new THREE.MeshStandardMaterial({ color: 0xf7f4ee, emissive: 0xfff6e8, emissiveIntensity: 0.55, side: THREE.DoubleSide }))
       ceil.rotation.x = Math.PI / 2
       ceil.position.set(cols / 2, WALL_IN / cell, rows / 2)
+      ceil.userData.ceiling = true
       t.groups.walls.add(ceil)
     }
   }, [grid, rooms, showPlan, planImage, space, cell, tall, lived, rider])
+
+  // ---- night: house lights off, a little moonlight, night lights glow (they're added with the furniture)
+  useEffect(() => {
+    const t = three.current
+    if (!t) return
+    t.hemi.intensity = night ? 0.12 : 1.5
+    t.hemi.color.set(night ? 0x8fa6d6 : 0xfff6e8)
+    t.sun.intensity = night ? 0.15 : 1.6
+    t.sun.color.set(night ? 0x9fb4e6 : 0xfff2dd)
+    t.groups.walls.traverse((o) => {
+      if (o.isLight && o.userData.day != null) o.intensity = night ? o.userData.day * (o.isAmbientLight ? 0.12 : 0.03) : o.userData.day
+      if (o.userData.ceiling) o.material.emissiveIntensity = night ? 0.02 : 0.55
+    })
+    const card = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff'
+    t.scene.background = new THREE.Color(night ? 0x0b1020 : rider ? 0xdfe9f2 : card)
+  }, [night, rider, grid, rooms, lived, showPlan, tall])
 
   // ---- furniture: real shapes in lived-in mode, boxes otherwise
   useEffect(() => {
@@ -613,6 +635,11 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
           t.groups.items.add(ring)
         }
         t.groups.items.add(g)
+        if (night && /night-light|stick-lights|led-under-cabinet|lamp/.test(it.item || '')) {
+          const glow = new THREE.PointLight(0xffc27a, 2.2, 30, 1.6)
+          glow.position.set(it.x, 1.2, it.y)
+          t.groups.items.add(glow)
+        }
         continue
       }
       const hIn = cats[it.item]?.size_in?.h ?? 30
@@ -628,7 +655,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       mesh.castShadow = !gone
       t.groups.items.add(mesh)
     }
-  }, [items, catalog, cell, lived, grid, rooms, typical, walks])
+  }, [items, catalog, cell, lived, grid, rooms, typical, walks, night])
 
   // ---- people where they are now, with their trail (hidden while riding along)
   useEffect(() => {
@@ -742,6 +769,14 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     const halfOf = (inches) => Math.max(0.4, inches / cell / 2 - 0.5)
     const half = halfOf((walk.width || 20) - SQUEEZE_IN)      // can pass (same rule as the measured day)
     const comfy = halfOf(walk.width || 20)                     // passes without squeezing
+    // at night, ride along from their night trip (the 2 AM bathroom walk), not from the morning
+    const nk = night && !drive ? walk.marks.findIndex((m) => m.at > 0 && m.at < walk.pts.length - 5 && /night|^0[0-4]:/i.test(m.label || '')) : -1
+    if (nk > 0) {
+      const at = walk.marks[nk].at
+      const a = walk.pts[at] || p0, b = walk.pts[Math.min(walk.pts.length - 1, at + 10)]
+      ride.current = { walk, i: at, lastStop: nk, eye, off: 0, yaw: Math.atan2(b[1] - a[1], b[0] - a[0]),
+        drive, x: a[0] + 0.5, z: a[1] + 0.5, half, comfy }
+    } else
     ride.current = { walk, i: 0, eye, off: 0, yaw: Math.atan2(p1[1] - p0[1], p1[0] - p0[0]),
       drive, x: p0[0] + 0.5, z: p0[1] + 0.5, half, comfy }
     keys.current = {}
@@ -752,7 +787,9 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     t.camera.fov = 75
     t.camera.updateProjectionMatrix()
     setRider(walk.id)
-    mount.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    // keep the whole 3D view on screen, just under the top bar
+    const top = mount.current ? mount.current.getBoundingClientRect().top + window.scrollY - 70 : null
+    if (top != null) window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     if (record) startRecording(walk.name)
   }
 
@@ -865,6 +902,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
             <button className="tool" onClick={topDown}>Top down</button>
             <button className={orbit ? 'tool on' : 'tool'} onClick={() => setOrbit((o) => !o)}>Slow orbit</button>
             <button className={fullWalls ? 'tool on' : 'tool'} onClick={() => setFullWalls((f) => !f)}>Full walls</button>
+            <button className={night ? 'tool on' : 'tool'} onClick={() => setNight((n) => !n)}
+              title="2 AM: house lights off, only night lights glow. Ride along starts at the night trip">Night</button>
           </>
         )}
       </div>

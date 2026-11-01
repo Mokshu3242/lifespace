@@ -273,6 +273,15 @@ def live_a_day(floor: Floor, person: dict) -> Day:
             tried = sorted({n.lower() for _, n in options[:6]})
             leg.blocked = True
             leg.why = f"can't get to the {' or the '.join(tried)}: no path {width:.0f} in wide"
+            # show the try: walk as close as they can get (up to the narrow door), then back.
+            # Not counted in the distance; it only lets playback and the 3D ride show where they get stuck
+            goal_cell = options[0][0]
+            _, lab = cv2.connectedComponents(passable.astype(np.uint8), connectivity=8)
+            near = _nearest(lab == lab[at], *goal_cell)
+            if near is not None and near != at:
+                part = _astar(passable, tight, at, near)
+                if part:
+                    leg.path = [[c, r] for r, c in part + part[::-1][1:]]
             continue
         leg.path = [[c, r] for r, c in path]
         steps = sum(1.414 if (a[0] != b[0] and a[1] != b[1]) else 1.0 for a, b in zip(path, path[1:]))

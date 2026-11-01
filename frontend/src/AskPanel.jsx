@@ -42,12 +42,12 @@ export default function AskPanel({ space, design, showAfter }) {
       {out.map((a, i) => (
         <div key={i} className="ask-answer">
           <div className="meta"><strong>{a.question}</strong></div>
-          <p><span className={`verdict v-${a.verdict.replace(' ', '-')}`}>{BADGE[a.verdict]}</span> {a.answer}</p>
+          <p className="ask-text"><span className={`verdict v-${a.verdict.replace(' ', '-')}`}>{BADGE[a.verdict]}</span> {a.answer}</p>
           {a.facts.length > 0 && (
             <details><summary className="meta">Based on {a.facts.length} measured fact{a.facts.length > 1 ? 's' : ''}</summary>
               <ul className="flags">{a.facts.map((f, j) => <li key={j}>{f}</li>)}</ul></details>
           )}
-          {a.provider && <p className="meta">Answered by {a.provider} · facts measured by code</p>}
+          {a.provider && <p className="meta">Answered by {a.provider === 'meta' ? 'Meta Muse Spark 1.3' : a.provider} · facts measured by code</p>}
         </div>
       ))}
     </details>
