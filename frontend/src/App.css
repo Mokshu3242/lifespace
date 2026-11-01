@@ -446,3 +446,28 @@ textarea { max-width: 100%; }
 .bubble.them { align-self: flex-start; background: var(--bg); border-left: 3px solid var(--line); border-bottom-left-radius: 4px; }
 .bubble.typing { opacity: 0.7; font-style: italic; }
 .talk .future-row input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; }
+/* extras */
+.visitors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 10px; }
+.visitors .meta { margin: 0; width: 100%; }
+.visitors .chip, .goal-chips .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); cursor: pointer; }
+.visitors .chip:hover, .goal-chips .chip:hover { border-color: var(--accent); }
+.saved { font-size: 0.82rem; margin: 6px 0 0; font-weight: 600; }
+.saved-total { font-size: 0.88rem; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); margin: 10px 0; }
+.comic { margin-top: 8px; }
+.comic img { width: 100%; border-radius: 10px; display: block; margin-top: 6px; }
+.tiers-btn { width: 100%; margin-top: 10px; }
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.tier { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: left; padding: 8px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; font-size: 0.78rem; }
+.tier strong { font-size: 1rem; }
+.tier.on { border-color: var(--accent); background: var(--accent-soft); }
+.tier ul { margin: 2px 0; padding-left: 14px; }
+.tier li { margin: 1px 0; }
+.tiers-note { grid-column: 1 / -1; }
+.doctor { margin: 10px 0; }
+.doctor .future-row input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; }
+.fix-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; font-size: 0.84rem; }
+.fix-list li { padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.fix-list li.rejected { opacity: 0.6; }
+.fix-list label { display: flex; gap: 6px; align-items: baseline; cursor: pointer; }

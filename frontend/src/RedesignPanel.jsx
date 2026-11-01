@@ -202,6 +202,20 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [space.id])
 
+  const [tiers, setTiers] = useState(null)
+  const [tiersBusy, setTiersBusy] = useState(false)
+  async function compareTiers() {
+    setTiersBusy(true); setError(null)
+    const amounts = space.pack === 'office' ? [1000, 5000, 15000] : [250, 1000, 3000]
+    try {
+      // the top tier spends on bigger upgrades, so the three really differ
+      const ds = await Promise.all(amounts.map((b, i) => api.redesign(space.id, b, goals, i === 2 ? 'big' : style)))
+      setVersions((v) => [...v, ...ds])
+      setTiers(ds)
+    } catch (e) { setError(e.message) }
+    setTiersBusy(false)
+  }
+
   async function run() {
     setBusy(true)
     setError(null)
@@ -230,6 +244,12 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
           <input type="number" min={50} max={100000} step={50} value={budget}
             onChange={(e) => setBudget(e.target.value)} />
         </label>
+        <div className="ask-ideas goal-chips">
+          {(space.pack === 'office'
+            ? ['wheelchair friendly', 'quieter focus spots', 'better meetings']
+            : ['safe for my mom with a walker', 'toddler-safe: anchors, outlet covers, gates, soft corners', 'more storage', 'cozy and calm']
+          ).map((g) => <button key={g} type="button" className="chip" onClick={() => setGoals(g)}>{g.split(':')[0]}</button>)}
+        </div>
         <label>Goals (optional)
           <textarea rows={2} maxLength={300} value={goals} onChange={(e) => setGoals(e.target.value)}
             placeholder={space.pack === 'office' ? 'quieter focus spots, better meetings' : 'safer for my parents, more storage'} />
@@ -250,9 +270,30 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
           <input className="target" type="number" min={0} max={100} value={target}
             onChange={(e) => setTarget(e.target.value)} aria-label="Target safety score" />
         </div>
+        <button className="ghost tiers-btn" onClick={compareTiers} disabled={busy || dirty || improving || tiersBusy}>
+          {tiersBusy ? 'Designing 3 budgets at once…' : `💰 Compare 3 budgets (${space.pack === 'office' ? '$1k · $5k · $15k' : '$250 · $1k · $3k'})`}
+        </button>
         {error && <p className="bad">{error}</p>}
       </div>
       </details>
+
+      {tiers && (
+        <div className="tiers">
+          {tiers.map((t) => {
+            const kept = t.changes.filter((c) => !c.dropped)
+            return (
+              <button key={t.id} className={design?.id === t.id ? 'tier on' : 'tier'} onClick={() => { onDesign(t); onShowAfter(true) }}>
+                <strong>${t.budget_usd.toLocaleString()}</strong>
+                <span className="meta">spent ${t.spent_usd.toLocaleString()}</span>
+                <span>{kept.length} changes</span>
+                <ul>{kept.slice(0, 4).map((c, i) => <li key={i}>{c.name}</li>)}{kept.length > 4 && <li className="meta">+{kept.length - 4} more</li>}</ul>
+                <span className="meta">Design {t.id} · tap to see it</span>
+              </button>
+            )
+          })}
+          <p className="meta tiers-note">Run a day in People on each design to compare scores.</p>
+        </div>
+      )}
 
       {log.length > 0 && (
         <ol className="live-log" aria-live="polite" ref={logRef}>

@@ -14,6 +14,20 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
   const [family, setFamily] = useState(null)
   const [text, setText] = useState('')
   const [making, setMaking] = useState(false)
+  const [comics, setComics] = useState({})
+  const [drawing, setDrawing] = useState(null)
+
+  async function addVisitor(kind) {
+    setError(null)
+    try { setFamily(await api.addVisitor(space.id, kind)); onSim(null) } catch (e) { setError(e.message) }
+  }
+
+  async function drawComic(pid) {
+    if (!design) return
+    setDrawing(pid); setError(null)
+    try { const c = await api.comic(space.id, pid, design.id); setComics((m) => ({ ...m, [pid]: c })) } catch (e) { setError(e.message) }
+    setDrawing(null)
+  }
 
   useEffect(() => {
     api.family(space.id).then((f) => { if (f) { setFamily(f); setText(f.text) } }).catch(() => {})
@@ -82,6 +96,14 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
           </>
         )}
       </div>
+      {space.pack !== 'office' && (
+        <div className="visitors">
+          <span className="meta">Add to the household:</span>
+          {[['dog', '🐕 Dog'], ['toddler', '👶 Toddler'], ['caregiver', '🧑‍⚕️ Caregiver'], ['delivery', '📦 Delivery']].map(([k, label]) => (
+            <button key={k} className="chip" onClick={() => addVisitor(k)} disabled={busy}>{label}</button>
+          ))}
+        </div>
+      )}
       <button onClick={run} disabled={busy}>{busy ? 'Living the day…' : sim ? 'Run again' : 'Run a day'}</button>
       {error && <p className="bad">{error}</p>}
       <h3 className="whatif">What if…</h3>
@@ -97,6 +119,11 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
             <button className="tool" onClick={() => onPlay(!playing)}>{playing ? 'Pause' : 'Play the day'}</button>
             {clock && <span className="clock">{clock}</span>}
           </div>
+          {design && sim.time_saved?.length > 0 && (() => {
+            const total = sim.time_saved.reduce((t, x) => t + Math.max(0, x.minutes), 0)
+            const trips = sim.time_saved.reduce((t, x) => t + Math.max(0, x.trips_unlocked), 0)
+            return total > 0 && <p className="saved-total">⏱ The redesign saves this household about <strong>{Math.round(total)} min a day</strong>{trips > 0 && <> and makes <strong>{trips}</strong> more trip{trips > 1 ? 's' : ''} possible</>}.</p>
+          })()}
           <ul className="persons">
             {sim.personas.map((p) => {
               const b = sim.before[p.id], a = sim.after[p.id]
@@ -117,7 +144,26 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
                       <Row label="Couldn't get there" b={b.blocked} a={a.blocked} lowerIsBetter />
                     </tbody>
                   </table>
+                  {(() => {
+                    const ts = sim.time_saved?.find((x) => x.id === p.id)
+                    return ts && design && (ts.minutes !== 0 || ts.trips_unlocked !== 0) && (
+                      <p className={ts.minutes > 0 ? 'saved good' : 'saved bad'}>
+                        {ts.minutes > 0 ? `⏱ Saves about ${ts.minutes} min a day` : `⏱ About ${-ts.minutes} min more a day`}
+                        {ts.trips_unlocked > 0 && ` · ${ts.trips_unlocked} trip${ts.trips_unlocked > 1 ? 's' : ''} now possible`}
+                      </p>
+                    )
+                  })()}
                   {voice && <p className="voice">“{voice}”</p>}
+                  {on && design && (
+                    <div className="comic" onClick={(e) => e.stopPropagation()}>
+                      {!comics[p.id] && <button className="tool" disabled={drawing === p.id} onClick={() => drawComic(p.id)}>
+                        {drawing === p.id ? 'Drawing the comic…' : `🎨 Comic of ${p.name}'s day`}</button>}
+                      {comics[p.id] && (<>
+                        <img src={comics[p.id].url} alt={`Comic of ${p.name}'s day, before and after`} />
+                        <p className={isMeta(comics[p.id].provider) ? 'powered meta' : 'powered'}>Drawn by {modelLabel(comics[p.id].provider)} from {p.name}'s measured day</p>
+                      </>)}
+                    </div>
+                  )}
                   {on && (
                     <ol className="legs">
                       {d.legs.map((lg, i) => (

@@ -229,6 +229,45 @@ class MapEdit(BaseModel):
     rooms: list[dict]
     entrance: list[int] | None = None
     items: list[dict] | None = None
+    doors: list[dict] | None = None
+
+
+class DoctorAsk(BaseModel):
+    instruction: str = ""
+    use_ai: bool = True
+    fixes: list[dict] | None = None      # given: only apply these (preview), no model call
+
+
+@router.post("/{space_id}/doctor")
+def plan_doctor(space_id: str, ask: DoctorAsk):
+    """AI plan check: code lists problems, Muse Spark proposes fixes (or follows an instruction), code
+    applies them to a copy. Returns the preview; nothing is saved until the editor saves the map."""
+    from app.space.plandoctor import apply, ai_fixes, check
+    from app.space.reader import context_line
+
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    issues = check(space)
+    out = {"issues": issues, "summary": "", "provider": None}
+    if ask.fixes is not None:
+        fixes = ask.fixes
+    else:
+        fixes = [i["fix"] for i in issues if i.get("fix") and i["kind"] != "narrow_door"]
+        if ask.use_ai or ask.instruction.strip():
+            img = p.parent / "plan.img"
+            try:
+                ai = ai_fixes(space, img.read_bytes() if img.exists() else None, issues, ask.instruction,
+                              get_router(), context_line(space.get("pack") or "home", space.get("describe") or ""))
+            except AllProvidersFailed as e:
+                raise HTTPException(503, f"Models are unavailable: {e}")
+            out.update(summary=ai["summary"], provider=ai["provider"])
+            seen = {json.dumps(f, sort_keys=True) for f in fixes}
+            fixes += [f for f in ai["fixes"] if json.dumps(f, sort_keys=True) not in seen]
+    new, log = apply(space, fixes)
+    out.update(fixes=log, preview={k: new[k] for k in ("grid", "rooms", "entrance", "doors", "items") if k in new})
+    return out
 
 
 @router.put("/{space_id}")
@@ -241,6 +280,8 @@ def save_space(space_id: str, edit: MapEdit):
     if len(edit.grid) != current["rows"] or any(len(r) != current["cols"] for r in edit.grid):
         raise HTTPException(400, "Grid size changed; that isn't allowed")
     current.update(grid=edit.grid, rooms=edit.rooms, entrance=edit.entrance, edited=True)
+    if edit.doors is not None:
+        current["doors"] = edit.doors
     if edit.items is not None:
         current["items"] = edit.items
     p.write_text(json.dumps(current), encoding="utf-8")
@@ -325,6 +366,9 @@ def run_simulation(space_id: str, ask: SimulateAsk):
     out = simulate(space, after, get_router(),
                    context_line(space.get("pack") or "home", space.get("describe") or ""), changes, people)
     out["design_id"] = ask.design_id
+    from app.space.extras import time_saved
+    from app.space.simulate import load_personas as _lp
+    out["time_saved"] = time_saved(out, people or list(_lp(space.get("pack") or "home")))
     from app.space.scorecard import scorecard
     out["scores"] = scorecard(space, after, out)
     folder = p.parent / "sims"
@@ -580,6 +624,80 @@ def describe_family(space_id: str, ask: FamilyAsk):
 def get_family(space_id: str):
     fam = _path(space_id, "family.json")
     return json.loads(fam.read_text(encoding="utf-8")) if fam.exists() else None
+
+
+class VisitorAsk(BaseModel):
+    kind: str
+
+
+@router.post("/{space_id}/family/add")
+def add_person(space_id: str, ask: VisitorAsk):
+    """Add a dog, a caregiver, a delivery or a toddler to the household (preset sizes and days)."""
+    from app.space.extras import VISITORS, add_visitor
+    from app.space.simulate import load_personas
+
+    if ask.kind not in VISITORS:
+        raise HTTPException(400, f"Pick one of: {', '.join(VISITORS)}")
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    fam_p = p.parent / "family.json"
+    fam = json.loads(fam_p.read_text(encoding="utf-8")) if fam_p.exists() else None
+    if fam and len(fam["people"]) >= 8:
+        raise HTTPException(400, "That's a full house (8 people max)")
+    out = add_visitor(fam, list(load_personas(space.get("pack") or "home")), ask.kind, space["rooms"])
+    fam_p.write_text(json.dumps(out), encoding="utf-8")
+    return out
+
+
+class ComicAsk(BaseModel):
+    person_id: str
+    design_id: int
+
+
+@router.post("/{space_id}/comic")
+def comic(space_id: str, ask: ComicAsk):
+    """Muse Image draws a 4-panel comic of one person's day, Before and After, from the measured day."""
+    from app.space.extras import comic_prompt
+    from app.space.simulate import load_personas, simulate
+
+    p = _path(space_id, "map.json")
+    dp = _path(space_id, "designs") / f"{int(ask.design_id)}.json"
+    if not (p.exists() and dp.exists()):
+        raise HTTPException(404, "Design not found")
+    out = dp.parent / f"{int(ask.design_id)}_comic_{re.sub(r'[^a-z0-9]', '', ask.person_id.lower())[:20]}.png"
+    url = f"/api/spaces/{space_id}/comic/{out.name}"
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    d = json.loads(dp.read_text(encoding="utf-8"))
+    fam = p.parent / "family.json"
+    people = json.loads(fam.read_text(encoding="utf-8"))["people"] if fam.exists() else list(load_personas(space.get("pack") or "home"))
+    me = next((x for x in people if x["id"] == ask.person_id), None)
+    if me is None:
+        raise HTTPException(404, "No such person")
+    sim = simulate(space, d["items"], None, "", [], people)
+    prompt = comic_prompt(me, sim["before"][me["id"]], sim["after"][me["id"]], d.get("changes", []),
+                          "office" if space.get("pack") == "office" else "apartment")
+    if not out.exists():
+        router_ = get_router()
+        try:
+            out.write_bytes(router_.render(prompt))
+        except AllProvidersFailed as e:
+            raise HTTPException(503, f"Image models are unavailable: {e}")
+        who = router_.last_provider or ""
+    else:
+        who = "meta (saved)"
+    return {"url": url, "prompt": prompt, "provider": who.replace("meta", "meta-image", 1) if who.startswith("meta") else who}
+
+
+@router.get("/{space_id}/comic/{name}")
+def get_comic(space_id: str, name: str):
+    if not re.fullmatch(r"\d+_comic_[a-z0-9]+\.png", name):
+        raise HTTPException(400, "Bad name")
+    out = _path(space_id, "designs") / name
+    if not out.exists():
+        raise HTTPException(404, "No comic yet")
+    return FileResponse(out, media_type="image/png")
 
 
 @router.delete("/{space_id}/family")

@@ -62,6 +62,19 @@ export const api = {
     body.append('file', file)
     return fetch(`/api/spaces/${id}/designs/${designId}/restyle?room_id=${roomId}`, { method: 'POST', body }).then(handle)
   },
+  doctor: (id, body) =>
+    fetch(`/api/spaces/${id}/doctor`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(handle),
+  addVisitor: (id, kind) =>
+    fetch(`/api/spaces/${id}/family/add`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }),
+    }).then(handle),
+  comic: (id, personId, designId) =>
+    fetch(`/api/spaces/${id}/comic`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ person_id: personId, design_id: designId }),
+    }).then(handle),
   talk: (id, personId, message, history, designId) =>
     fetch(`/api/spaces/${id}/talk`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

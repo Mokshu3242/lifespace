@@ -4,6 +4,7 @@ import { api } from './api'
 import { CODES, KIND_LABEL, areaSqft, isMeta, modelLabel, roomColor } from './mapStyle'
 import RedesignPanel from './RedesignPanel'
 import PeoplePanel from './PeoplePanel'
+import PlanDoctor from './PlanDoctor'
 import View3D from './View3D'
 
 const SOURCE_LABEL = {
@@ -39,6 +40,7 @@ export default function PlanEditor({ space, onReset }) {
   const [entrance, setEntrance] = useState(space.entrance)
   const [selectedId, setSelectedId] = useState(space.rooms[0]?.id ?? null)
   const [items, setItems] = useState(space.items || [])
+  const [doors, setDoors] = useState(space.doors || [])
   const [selectedItem, setSelectedItem] = useState(null)
   const [tab, setTab] = useState('rooms')
   const [catalog, setCatalog] = useState([])
@@ -148,9 +150,15 @@ export default function PlanEditor({ space, onReset }) {
     setDirty(true)
   }
 
+  // a whole-map snapshot (AI fixes change rooms and doors too), so Undo brings all of it back
+  function snapshot() { history.current.push({ grid, rooms, entrance, doors, items }) }
+
   function undo() {
     const prev = history.current.pop()
-    if (prev) { setGrid(prev); setDirty(true) }
+    if (!prev) return
+    if (Array.isArray(prev)) setGrid(prev)
+    else { setGrid(prev.grid); setRooms(prev.rooms); setEntrance(prev.entrance); setDoors(prev.doors); setItems(prev.items) }
+    setDirty(true)
   }
 
   function rename(name) {
@@ -190,7 +198,7 @@ export default function PlanEditor({ space, onReset }) {
     setMessage(null)
     try {
       const withAreas = rooms.map((r) => ({ ...r, area_sqft: totals[r.id] }))
-      await api.saveSpace(space.id, { grid, rooms: withAreas, entrance, items })
+      await api.saveSpace(space.id, { grid, rooms: withAreas, entrance, items, doors })
       setDirty(false)
       setMessage('Saved.')
     } catch (e) {
@@ -229,7 +237,7 @@ export default function PlanEditor({ space, onReset }) {
         <p className="hint">{view === '3d' ? 'The same map in 3D. Switch to 2D to edit rooms and walls.' : activeTool.hint}</p>
         <div className="canvas-wrap">
           {view === '3d' ? (
-            <View3D space={space} grid={grid} rooms={rooms} catalog={catalog} planImage={planImage} showPlan={showPlan}
+            <View3D space={{ ...space, doors }} grid={grid} rooms={rooms} catalog={catalog} planImage={planImage} showPlan={showPlan}
               people={tab === 'people' ? people : []} ghost={ghost} walks={walks}
               items={liveItems ? liveItems
                 : (tab === 'redesign' || tab === 'people') && design
@@ -250,8 +258,8 @@ export default function PlanEditor({ space, onReset }) {
         <div className="chips">
           <span className="chip-stat"><b>{rooms.length}</b> rooms</span>
           <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
-          <span className="chip-stat"><b>{space.doors?.length ?? 0}</b> doorways</span>
-          {space.doors?.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{space.doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
+          <span className="chip-stat"><b>{doors.length}</b> doorways</span>
+          {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
           <span className="chip-stat"><b>{items.length}</b> items found</span>
           {design && <span className="chip-stat good-chip">Design {design.id}: <b>{design.changes?.length ?? 0}</b> changes</span>}
           {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
@@ -351,14 +359,23 @@ export default function PlanEditor({ space, onReset }) {
         </ul>
         </>
         )}
-        {tab === 'rooms' && space.doors?.length > 0 && (
-          <details className="doors-found" open={space.doors.length <= 6}>
-            <summary><strong>Doorways measured on the plan: {space.doors.length}</strong></summary>
+        {tab === 'rooms' && (
+          <PlanDoctor space={space} doors={doors} onPreview={(pv) => {
+            snapshot()
+            setGrid(pv.grid); setRooms(pv.rooms); if (pv.entrance) setEntrance(pv.entrance)
+            if (pv.doors) setDoors(pv.doors); if (pv.items) setItems(pv.items)
+            setSelectedId(pv.rooms[0]?.id ?? null); setDirty(true)
+            setMessage('AI fixes are on the map. Check them, then Save map (or Undo).')
+          }} />
+        )}
+        {tab === 'rooms' && doors.length > 0 && (
+          <details className="doors-found" open={doors.length <= 6}>
+            <summary><strong>Doorways measured on the plan: {doors.length}</strong></summary>
             <ul>
-              {[...space.doors].sort((a, b) => a.width_in - b.width_in).map((d, i) => (
+              {[...doors].sort((a, b) => a.width_in - b.width_in).map((d, i) => (
                 <li key={i} className={d.width_in < 30 ? 'narrow' : ''}>
                   {[...new Set(d.rooms.map((id) => rooms.find((r) => r.id === id)?.name).filter(Boolean))].join(' ↔ ') || 'Door'}{d.outside && ' (front door)'}{d.has_door === false && ' (open, no door)'}
-                  {' · '}{d.width_in} in{d.width_in < 30 && ' · narrow for a walker or wheelchair'}
+                  {' · '}{d.width_in} in{d.width_in < 30 && ' · narrow for a walker or wheelchair'}{d.widened && ' · widened (what-if)'}
                 </li>
               ))}
             </ul>

@@ -209,7 +209,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
             const done = r.walk.marks[k2 - 1]
             const p = pts[Math.max(0, r.walk.marks[k2].at - 1)]
             r.i = r.walk.marks[k2].at - 1
-            r.use = pickUse(p[0] + 0.5, p[1] + 0.5, done.label, 9)
+            // a trip they couldn't make: they stop at the narrow door, they don't use anything there
+            r.use = /can\u2019t get there|can't get there/.test(done.label) ? null : pickUse(p[0] + 0.5, p[1] + 0.5, done.label, 9)
             r.useLabel = done.label
             r.pause = PAUSE_S + (r.use ? 1.5 : 0)
           }
