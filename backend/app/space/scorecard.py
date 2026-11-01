@@ -82,8 +82,10 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
                             f"{len(rooms)} rooms; {len(turn_rooms)} have room for a 5 ft turn"}
     for r in rooms:
         if r["id"] not in reach and floor.entrance is not None and r.get("kind") != "outdoor":
-            flags.append(f"{r['name']}: a {name} can't get in. The way in is narrower than about "
-                         f"{width} in; a 32 in door fixes it. Furniture can't.")
+            doors = sorted(d["width_in"] for d in space.get("doors", []) if r["id"] in d.get("rooms", []))
+            how = (f"Its door measures about {doors[0]} in" if doors
+                   else f"The way in is narrower than about {width} in")
+            flags.append(f"{r['name']}: a {name} can't get in. {how}; a 32 in door fixes it. Furniture can't.")
 
     # ---- safety: the cheap things that matter most
     sleep = _named(rooms, "bedroom")

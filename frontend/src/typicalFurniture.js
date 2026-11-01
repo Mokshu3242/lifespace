@@ -7,8 +7,25 @@
 
 const WALL = -1
 
-function plansFor(name, sqft) {
+function officePlans(n, sqft) {
+  if (/meeting|conference|board|huddle/.test(n)) return [[sqft >= 160 ? 'meet-8' : 'meet-4', 'table', 'meet-chair'], ['screen-65', 'wall'], ['whiteboard', 'wall']]
+  if (/reception|lobby|entry|waiting/.test(n)) return [['reception-desk', 'wall'], ['waiting-chair', 'wall'], ['waiting-chair', 'wall'], ['plant-office', 'wall']]
+  if (/pantry|kitchen|break|cafe|canteen/.test(n)) return [['cafe-table', 'table', 'cafe-chair'], ['water-cooler', 'wall'], ['coffee-machine', 'wall']]
+  if (/lounge/.test(n)) return [['lounge-sofa', 'wall'], ['lounge-chair', 'wall'], ['side-table', 'center'], ['plant-office', 'wall']]
+  if (/phone|booth|focus|quiet/.test(n)) return [['desk-office', 'wall'], ['task-chair', 'center']]
+  if (/server|it\b|storage|store|copy|print/.test(n)) return [['cabinet', 'wall'], ['printer', 'wall']]
+  if (/open|work|desk|office|studio|team|bullpen/.test(n) || sqft >= 250) {
+    // desks for a team: a bench of four per ~150 sq ft, up to four benches
+    const benches = Math.max(1, Math.min(4, Math.floor(sqft / 150)))
+    return [...Array(benches)].map(() => ['bench-desk-4', 'table', 'task-chair']).concat([['plant-office', 'wall'], ['locker', 'wall']])
+  }
+  if (sqft >= 60 && !/restroom|bath|wc|toilet|closet|corridor|hall/.test(n)) return [['desk-office', 'wall'], ['task-chair', 'center'], ['cabinet', 'wall']]
+  return []
+}
+
+function plansFor(name, sqft, office = false) {
   const n = name.toLowerCase()
+  if (office) return officePlans(n, sqft)
   if (/terrace|balcony|patio|deck|porch/.test(n)) return [['outdoor-sofa', 'wall'], ['outdoor-table', 'center']]
   if (/bed|guest|nursery|kid/.test(n)) {
     const bed = sqft >= 150 ? 'bed-queen' : sqft >= 100 ? 'bed-full' : 'bed-twin'
@@ -116,19 +133,31 @@ export function typicalFurniture(grid, rooms, items, catalog, cellIn, walks = []
       return best && { ...best, h, w }
     }
 
-    for (const [item, how] of plansFor(room.name || '', sqft)) {
-      if (has.has(FAMILY(item)) || !cats[item]) continue
+    const office = !!cats['desk-office']
+    // furniture already drawn on the plan (desks, tables, counters) reads as built-in blocks: if a room
+    // has plenty of it, don't add a second set, only the small things (plants, lamps)
+    const [bc0, br0, bc1, br1] = room.bbox_cells || [0, 0, -1, -1]
+    let drawn = 0
+    for (let r = br0 - 1; r <= br1 + 1; r++) for (let c = bc0 - 1; c <= bc1 + 1; c++) if (grid[r]?.[c] === -4) drawn++
+    const furnished = drawn > cells.length * 0.12
+    const counts = {}
+    for (const [item, how, chair] of plansFor(room.name || '', sqft, office)) {
+      if (furnished && !/plant|lamp|art|rug/.test(item)) continue
+      counts[item] = (counts[item] || 0) + 1
+      if ((counts[item] === 1 && has.has(FAMILY(item)) && !office) || !cats[item]) continue
       if (how === 'wall') againstWall(item)
       else if (how === 'center') inMiddle(item, 2)
       else if (how === 'table') {
         const t = inMiddle(item, 4, 0)
         if (!t) continue
-        const [chw, chd] = size('dining-chair') || [3, 4]
-        // two chairs on each long side, facing the table
-        for (const k of [0.25, 0.75]) {
-          const c0 = Math.round(t.c + t.w * k - chw / 2)
-          if (rectFree(t.r - chd, c0, chd, chw)) put('dining-chair', t.r - chd, c0, chd, chw, 0)
-          if (rectFree(t.r + t.h, c0, chd, chw)) put('dining-chair', t.r + t.h, c0, chd, chw, Math.PI)
+        const seat = chair || 'dining-chair'
+        const [chw, chd] = size(seat) || [3, 4]
+        // chairs along both long sides, facing the table (two per side, more on long tables)
+        const per = Math.max(2, Math.min(4, Math.floor(t.w / (chw + 1))))
+        for (let j = 0; j < per; j++) {
+          const c0 = Math.round(t.c + t.w * ((j + 0.5) / per) - chw / 2)
+          if (rectFree(t.r - chd, c0, chd, chw)) put(seat, t.r - chd, c0, chd, chw, 0)
+          if (rectFree(t.r + t.h, c0, chd, chw)) put(seat, t.r + t.h, c0, chd, chw, Math.PI)
         }
       }
     }

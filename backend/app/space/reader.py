@@ -102,6 +102,7 @@ class SpaceMap:
     image_size: tuple[int, int]          # (w, h) of the working image
     warnings: list[str] = field(default_factory=list)
     items: list[dict] = field(default_factory=list)    # furniture already on the plan, matched to the catalog
+    doors: list[dict] = field(default_factory=list)    # doors SAM 3.1 found: where, how wide, which rooms
 
     def to_dict(self) -> dict:
         return {
@@ -116,6 +117,7 @@ class SpaceMap:
             "codes": {"wall": WALL, "outside": OUTSIDE, "fixture": FIXTURE},
             "warnings": self.warnings,
             "items": self.items,
+            "doors": self.doors,
         }
 
 
@@ -296,9 +298,10 @@ def _grow(grid: np.ndarray, only: set[int] | None, steps: int | None) -> None:
 
 # ---------------------------------------------------------------- main
 CHAIR_IN = 22   # most chairs and stools on plans are 18 to 26 in across
+CHAIR_IN_BY_PACK = {"home": 22, "office": 25}   # dining chairs about 20-22 in; office task chairs about 25-26 in
 
 
-def chair_scale(blocked: np.ndarray) -> tuple[float, int] | None:
+def chair_scale(blocked: np.ndarray, chair_in: float = CHAIR_IN) -> tuple[float, int] | None:
     """px per ft from chairs. Plans repeat one chair size many times, so the biggest group of
     near-square shapes that agree on size (4+ of them) is almost always the chairs."""
     n, lab, st, _ = cv2.connectedComponentsWithStats(blocked.astype(np.uint8), 8)
@@ -315,13 +318,13 @@ def chair_scale(blocked: np.ndarray) -> tuple[float, int] | None:
             best = group
     if len(best) < 4:
         return None
-    return float(np.median(best)) / (CHAIR_IN / 12), len(best)
+    return float(np.median(best)) / (chair_in / 12), len(best)
 
 
 def build_space_map(gray: np.ndarray, labels: list[Label],
                     entrance_px: tuple[float, float] | None,
                     width_ft_hint: float | None = None,
-                    entrance_label: int | None = None) -> SpaceMap:
+                    entrance_label: int | None = None, pack: str = "home") -> SpaceMap:
     h, w = gray.shape
     warnings: list[str] = []
     walls, furniture = find_walls(gray)
@@ -415,13 +418,23 @@ def build_space_map(gray: np.ndarray, labels: list[Label],
         warnings.append("No printed sizes on the plan. Scale was estimated from doors and furniture; check it.")
         # Chairs are a better ruler than a model's guess (models gave 40, 50 and 60 ft for the
         # same 40 ft office). When 4+ chairs agree, they set the scale.
-        chairs = chair_scale(blocked)
+        chair_in = CHAIR_IN_BY_PACK.get(pack, CHAIR_IN)
+        chairs = chair_scale(blocked, chair_in)
         if chairs and abs(chairs[0] - px_per_ft) > 0.05 * chairs[0]:
-            px_per_ft = chairs[0]
-            warnings[-1] = f"No printed sizes on the plan. Scale was measured from {chairs[1]} chairs; check it."
-            scale_source = (f"measured from {chairs[1]} chairs (about {CHAIR_IN} in each); the model "
-                            f"guessed {width_ft_hint:.0f} ft wide")
-            warnings[-1] = f"No printed sizes on the plan. Scale was measured from {chairs[1]} chairs; check it."
+            chair_ft = w / chairs[0]
+            if abs(chairs[0] - px_per_ft) > 0.2 * chairs[0]:
+                # chairs and the model disagree a lot (chairs drawn smaller or bigger than usual):
+                # take the middle and say so
+                px_per_ft = (chairs[0] * px_per_ft) ** 0.5
+                scale_source = (f"chairs ({chairs[1]} of them, about {chair_in} in each) gave {chair_ft:.0f} ft wide and "
+                                f"the model guessed {width_ft_hint:.0f} ft; used the middle, {w / px_per_ft:.0f} ft. Check it")
+                warnings[-1] = (f"No printed sizes on the plan. Chairs and the model disagree on the size "
+                                f"({chair_ft:.0f} vs {width_ft_hint:.0f} ft wide); used {w / px_per_ft:.0f} ft. Check it.")
+            else:
+                px_per_ft = chairs[0]
+                scale_source = (f"measured from {chairs[1]} chairs (about {chair_in} in each); the model "
+                                f"guessed {width_ft_hint:.0f} ft wide")
+                warnings[-1] = f"No printed sizes on the plan. Scale was measured from {chairs[1]} chairs; check it."
         # Sanity check: only catch an estimate that is clearly broken. Offices split into many
         # small spaces (booths, desk pods), so a 50 sq ft middle room is normal there.
         by_name: dict[str, int] = {}
@@ -740,7 +753,7 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     except (TypeError, ValueError):
         width_hint = None
 
-    smap = build_space_map(gray, labels, None, width_hint, entrance_label=entrance_idx)
+    smap = build_space_map(gray, labels, None, width_hint, entrance_label=entrance_idx, pack=pack)
 
     # 2b) a printed "Entrance" beats the model's guess: the door is the floor right next to that label
     door = ocr.entrance_marks(all_texts)
@@ -766,6 +779,17 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     from app.space.items import detect_items, to_dicts
     smap.items = to_dicts(detect_items(gray, smap.grid, smap.rooms, smap.px_per_ft, smap.cell_in,
                                        pack, router, context))
+    # 3b) plans that draw furniture as filled shapes (most office plans): Meta SAM 3.1 finds it
+    from app.space.sam_items import merge, sam_items
+    g = np.array(smap.grid)
+    found = sam_items(gray, g, smap.rooms, smap.px_per_ft, smap.cell_in, pack, router)
+    if found:
+        smap.items = merge(smap.items, found, g)
+        smap.grid = g.tolist()
+    # 3c) doors: SAM 3.1 finds each door (leaf and swing arc); its box gives the door's real width
+    from app.space.sam_items import find_doors
+    smap.doors = find_doors(gray, g, smap.rooms, smap.px_per_ft, smap.cell_in, router)
+    smap.grid = g.tolist()          # doorways cleared of door leaves read as blocks
 
     unnamed = sum(1 for lb in labels if lb.name.startswith("Space "))
     if unnamed:

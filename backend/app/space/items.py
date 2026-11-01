@@ -72,7 +72,16 @@ class Shape:
     room: int | None
 
 
-def find_shapes(gray: np.ndarray, px_per_ft: float, grid: np.ndarray, cell_px: float) -> list[Shape]:
+def find_door_swings(gray: np.ndarray, px_per_ft: float) -> list[tuple[int, int, int, int, float]]:
+    """Doors found by code: the blank pocket a door swing closes off (wall + leaf + arc).
+    Returns boxes in image pixels, like SAM's, so both go through the same door measuring."""
+    out: list[tuple[int, int, int, int, float]] = []
+    find_shapes(gray, px_per_ft, None, 1.0, swings=out)
+    return out
+
+
+def find_shapes(gray: np.ndarray, px_per_ft: float, grid: np.ndarray | None, cell_px: float,
+                swings: list | None = None) -> list[Shape]:
     walls, furniture = find_walls(gray)
     k = choose_seal_size(walls, [])
     inside = ~walls & ~outside_mask(walls, k)
@@ -96,6 +105,10 @@ def find_shapes(gray: np.ndarray, px_per_ft: float, grid: np.ndarray, cell_px: f
         mask = lab[y:y + h, x:x + w] == i
         if is_door_swing(mask, gray[y:y + h, x:x + w], near_wall[y:y + h, x:x + w],
                          max(w_in, d_in), from_pocket=not furniture[y:y + h, x:x + w][mask].any()):
+            if swings is not None:
+                swings.append((x, y, x + w, y + h, 0.8))
+            continue
+        if grid is None:
             continue
         shapes.append(Shape(x, y, w, h, round(w_in), round(d_in), _room_around(grid, x, y, w, h, cell_px)))
     return shapes

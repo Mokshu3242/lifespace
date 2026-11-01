@@ -123,7 +123,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     // what someone does at a stop, from the words of that part of their day
     const WANTS = [[/sleep|bed|nap|lie|rest/i, ['lie']], [/tv|watch|read|relax|chat|sofa|sit|game|play/i, ['sit', 'watch']],
       [/eat|lunch|dinner|breakfast|meal|snack|family/i, ['sit', 'use']], [/cook|tea|coffee|kitchen|dishes|fridge/i, ['use']],
-      [/bath|toilet|wash|shower|brush/i, ['sit', 'use']], [/work|study|homework|desk|call/i, ['use', 'sit']]]
+      [/bath|toilet|wash|shower|brush/i, ['sit', 'use']], [/work|study|homework|desk|email|code|focus/i, ['sit', 'use']], [/meet|standup|review|call|sync/i, ['sit']]]
     const pickUse = (x, z, note, radius) => {
       const want = WANTS.find(([re]) => re.test(note || ''))?.[1] || []
       let best = null
@@ -427,7 +427,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     }
     const box = new THREE.BoxGeometry(1, 1, 1)
     const wallIn = tall ? WALL_IN : CUTAWAY_IN
-    const fixColor = lived ? 0xe6e2da : 0xb9b6ad
+    const fixColor = lived ? 0xd9c3a0 : 0xb9b6ad     // built-ins drawn on the plan: counters, desks, tables
     const wallColor = lived ? 0xeee4d3 : 0xf4f1ea
     const addRuns = (list, y0In, y1In, material, shadow = true, grow = 1) => {
       if (!list.length) return
@@ -461,7 +461,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       // white baseboards along every wall, a little proud of the wall face
       addRuns([...walls, ...facadeRuns], 0, 4, solid(0xfbfaf7), false, 1.08)
       // door frames: short floor gaps between walls, with room on both sides
-      if (tall) {
+      {
         const frames = []
         const isWall = (r, c) => { const v = grid[r]?.[c]; return v === W || v === CODES.FIXTURE }
         const open = (r, c) => { const v = grid[r]?.[c]; return v !== undefined && v >= 0 }
@@ -496,7 +496,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
         for (const f of frames) if (!kept.some((k) => Math.abs(k.x - f.x) < 2 && Math.abs(k.z - f.z) < 2)) kept.push(f)
         const trim = solid(0xffffff)
         const head = 80 / cell, top = WALL_IN / cell
-        for (const f of kept) {
+        if (tall) for (const f of kept) {
           const lintel = new THREE.Mesh(box, solid(wallColor))
           lintel.scale.set(f.w, top - head, f.d)
           lintel.position.set(f.x, head + (top - head) / 2, f.z)
@@ -511,6 +511,36 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
             post.position.set(f.along === 'x' ? f.x + s * (f.w / 2 - 0.17) : f.x, head / 2, f.along === 'z' ? f.z + s * (f.d / 2 - 0.17) : f.z)
             t.groups.walls.add(post)
           }
+        }
+        // real doors where SAM 3.1 found them: hinged at one side of the doorway, standing open
+        // toward the side the swing is drawn on
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0xe9dcc4, roughness: 0.6 })
+        const knobMat = new THREE.MeshStandardMaterial({ color: 0xb8bcc0, roughness: 0.3, metalness: 0.7 })
+        const leafH = Math.min(80, tall ? 80 : CUTAWAY_IN + 6) / cell
+        for (const d of (space.doors || []).filter((x) => x.has_door !== false)) {
+          // the door finder gives the opening's middle, which way the wall runs, and the width
+          const len = (d.width_in / cell) * 0.96
+          const along = d.axis || 'x'                 // 'x': the opening runs along x, so the wall does too
+          // swing into the room side: look a few cells each way for floor that isn't outside
+          const probe = (sgn) => { for (let k = 2; k <= 6; k++) {
+            const r = Math.floor(along === 'x' ? d.y + sgn * k : d.y), c = Math.floor(along === 'x' ? d.x : d.x + sgn * k)
+            const v = grid[r]?.[c]; if (v !== undefined && v >= 0) return true } return false }
+          const side = probe(1) ? 1 : -1
+          const leaf = new THREE.Mesh(box, leafMat)
+          const knob = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), knobMat)
+          if (along === 'x') {           // open leaf stands along z, hinged at the opening's left end
+            const hx = d.x - len / 2 + 0.2
+            leaf.scale.set(0.28, leafH, len)
+            leaf.position.set(hx, leafH / 2, d.y + side * len / 2)
+            knob.position.set(hx + 0.3, 36 / cell, d.y + side * (len - 0.5))
+          } else {
+            const hz = d.y - len / 2 + 0.2
+            leaf.scale.set(len, leafH, 0.28)
+            leaf.position.set(d.x + side * len / 2, leafH / 2, hz)
+            knob.position.set(d.x + side * (len - 0.5), 36 / cell, hz + 0.3)
+          }
+          leaf.castShadow = true
+          t.groups.walls.add(leaf, knob)
         }
       }
       // even indoor light so walls don't go brown, then a soft warm light in each room

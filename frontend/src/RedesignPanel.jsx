@@ -9,6 +9,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export default function RedesignPanel({ space, dirty, design, onDesign, onShowAfter, rooms, onHover, onLive, onGhost }) {
   const [budget, setBudget] = useState(1000)
+  const [style, setStyle] = useState('small')
   const [goals, setGoals] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -194,7 +195,7 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
     setBusy(true)
     setError(null)
     try {
-      const d = await api.redesign(space.id, Number(budget), goals)
+      const d = await api.redesign(space.id, Number(budget), goals, style)
       setVersions((v) => [...v, d])
       onDesign(d)
       onShowAfter(true)
@@ -222,6 +223,12 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
           <textarea rows={2} maxLength={300} value={goals} onChange={(e) => setGoals(e.target.value)}
             placeholder={space.pack === 'office' ? 'quieter focus spots, better meetings' : 'safer for my parents, more storage'} />
         </label>
+        <div className="style-pick" role="radiogroup" aria-label="How to spend it">
+          {[['small', 'Many small fixes'], ['big', 'Fewer, bigger upgrades']].map(([k, label]) => (
+            <button key={k} type="button" className={style === k ? 'tool on' : 'tool'} aria-pressed={style === k}
+              onClick={() => setStyle(k)}>{label}</button>
+          ))}
+        </div>
         {dirty && <p className="note">Save the map first so the redesign uses your fixes.</p>}
         <div className="design-actions">
           <button onClick={run} disabled={busy || dirty || improving}>{busy ? 'Designing…' : 'Redesign'}</button>
@@ -283,7 +290,9 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
             <div className="bar"><span className={design.spent_usd > design.budget_usd ? 'over' : ''}
               style={{ width: `${Math.min(100, (design.spent_usd / design.budget_usd) * 100)}%` }} /></div>
             <p className="spent"><strong>${design.spent_usd.toLocaleString()}</strong> of ${design.budget_usd.toLocaleString()}
-              <span className="meta"> · {kept.length} changes</span></p>
+              <span className="meta"> · {kept.length} {kept.length === 1 ? 'change' : 'changes'}
+                {' · '}{new Set(kept.map((c) => c.room)).size} rooms helped
+                {design.style === 'big' && ' · bigger upgrades'}</span></p>
           </div>
           <ul className="changes">
             {kept.map((c, i) => (

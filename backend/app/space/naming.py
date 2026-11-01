@@ -10,12 +10,27 @@ from __future__ import annotations
 
 import logging
 
+import cv2
+
 import numpy as np
 
 from app.space import ocr
 from app.space.reader import (TILES_PER_SHEET, Label, NAME_PROMPT, draw_sheets, parse_dims)
 
 log = logging.getLogger("naming")
+
+WHOLE_PROMPT = """{context}This is a whole floor plan. Each space has a number in a white circle at its middle.
+Zoomed-in views named the spaces like this:
+{names}
+Zoomed views miss the big picture, so check each name against the WHOLE plan and the furniture drawn in that
+space: a sofa with a coffee table is a Lounge or Living Room; rows of desks with chairs, or a counter with
+stools, is an Open Work Area; a desk facing the entrance with waiting chairs is Reception; a big table with
+many chairs is a Meeting Room or Dining Area; a bed is a Bedroom; a toilet or tub is a Bathroom; a long empty
+strip joining rooms is a Hallway. If one numbered space plainly holds two areas, name it for both
+(for example "Reception And Lounge").
+Only list the spaces whose name is wrong. Printed names on the plan are always right; never change those.
+Reply as JSON: {{"fixes": [{{"id": 2, "name": "Lounge", "reason": "sofa and coffee table"}}]}}"""
+
 
 REFEREE_PROMPT = """{context}Several vision models named spaces on a floor plan and disagreed about some of them.
 For each space below, pick the best name. Weigh the reasons each model gave; a reason that cites
@@ -180,7 +195,49 @@ def name_spaces(gray: np.ndarray, marks: list[tuple[int, int]], regions: np.ndar
             lb.source, lb.unsure = "referee", True
             lb.note += " | " + "; ".join(f"{m}: {nm} ({r})" for m, nm, r, _ in vs)
 
+    # ---- 5. one look at the whole plan, to fix names the zoomed tiles got wrong
+    guessed = [k for k, lb in enumerate(labels, 1) if lb.source != "printed" and lb.name]
+    if guessed:
+        try:
+            png = _whole_plan(gray, marks)
+            names = "\n".join(f"- {k}: {lb.name}" + (" (printed on the plan)" if lb.source == "printed" else "")
+                              for k, lb in enumerate(labels, 1))
+            answers = router.see_each(WHOLE_PROMPT.format(context=context, names=names), png)
+            ans = next(iter(answers.values()), {}) if answers else {}
+            for f in ans.get("fixes") or []:
+                try:
+                    k = int(f.get("id"))
+                except (TypeError, ValueError, AttributeError):
+                    continue
+                new = str(f.get("name") or "").strip().title()
+                if k in guessed and new and not _same(new, labels[k - 1].name):
+                    lb = labels[k - 1]
+                    lb.note = f'whole-plan check: was "{lb.name}"; {str(f.get("reason") or "").strip()}'.strip()
+                    lb.name, lb.unsure = new, True
+        except Exception as e:  # the tile names stand if this step fails
+            log.warning("whole-plan naming check failed: %s", e)
+
     return labels
+
+
+def _whole_plan(gray: np.ndarray, marks: list[tuple[int, int]]) -> bytes:
+    """The full plan with each space's number in a white circle, scaled to a size models read well."""
+    color = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    h, w = gray.shape
+    k = min(1.0, 1400 / max(h, w)) if max(h, w) > 1400 else min(2.0, 900 / max(h, w))
+    if k != 1.0:
+        color = cv2.resize(color, (int(w * k), int(h * k)), interpolation=cv2.INTER_AREA)
+    r = max(11, int(0.018 * max(color.shape[:2])))
+    for n, (x, y) in enumerate(marks, 1):
+        c = (int(x * k), int(y * k))
+        cv2.circle(color, c, r, (255, 255, 255), -1)
+        cv2.circle(color, c, r, (0, 0, 200), 2)
+        label = str(n)
+        scale = r / 16
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, scale, 2)
+        cv2.putText(color, label, (c[0] - tw // 2, c[1] + th // 2), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 200), 2)
+    ok, buf = cv2.imencode(".png", color)
+    return buf.tobytes()
 
 
 __all__ = ["name_spaces", "TILES_PER_SHEET"]

@@ -108,6 +108,7 @@ def save_space(space_id: str, edit: MapEdit):
 class RedesignAsk(BaseModel):
     budget: float = 1000
     goals: str = ""
+    style: str = "small"     # "small": many small fixes, "big": fewer, bigger upgrades
 
 
 @router.post("/{space_id}/designs")
@@ -125,11 +126,12 @@ def create_design(space_id: str, ask: RedesignAsk):
     goals = " ".join(ask.goals.split())[:300]
     try:
         design = redesign(space, ask.budget, goals, get_router(),
-                          context_line(space.get("pack") or "home", space.get("describe") or ""))
+                          context_line(space.get("pack") or "home", space.get("describe") or ""),
+                          style="big" if ask.style == "big" else "small")
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Models are unavailable: {e}")
     return _save_design(p.parent / "designs",
-                        {"goals": goals, "provider": get_router().last_provider, **design.to_dict()})
+                        {"goals": goals, "style": ask.style if ask.style in ("small", "big") else "small", "provider": get_router().last_provider, **design.to_dict()})
 
 
 def _save_design(folder: Path, out: dict) -> dict:

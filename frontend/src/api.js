@@ -14,11 +14,11 @@ export const api = {
     return fetch(`/api/spaces?${q}`, { method: 'POST', body }).then(handle)
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
-  redesign: (id, budget, goals) =>
+  redesign: (id, budget, goals, style = 'small') =>
     fetch(`/api/spaces/${id}/designs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ budget, goals }),
+      body: JSON.stringify({ budget, goals, style }),
     }).then(handle),
   simulate: (id, designId) =>
     fetch(`/api/spaces/${id}/simulate`, {

@@ -336,6 +336,19 @@ export default function PlanEditor({ space, onReset }) {
         </ul>
         </>
         )}
+        {space.doors?.length > 0 && (
+          <div className="doors-found">
+            <strong>Doorways measured on the plan: {space.doors.length}</strong>
+            <ul>
+              {[...space.doors].sort((a, b) => a.width_in - b.width_in).map((d, i) => (
+                <li key={i} className={d.width_in < 30 ? 'narrow' : ''}>
+                  {[...new Set(d.rooms.map((id) => rooms.find((r) => r.id === id)?.name).filter(Boolean))].join(' ↔ ') || 'Door'}{d.outside && ' (front door)'}{d.has_door === false && ' (open, no door)'}
+                  {' · '}{d.width_in} in{d.width_in < 30 && ' · narrow for a walker or wheelchair'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {space.warnings?.length > 0 && (
           <div className="warn">
             {space.warnings.map((w) => <p key={w}>{w}</p>)}

@@ -91,3 +91,23 @@ def test_context_line_tells_models_the_space_type():
     assert "bedroom" not in line
     assert context_line("castle").startswith("This plan is a home.")      # unknown pack falls back
     assert NAME_PROMPT.format(context=line, ids="1").startswith("This plan is an office")
+
+
+def test_whole_plan_check_fixes_guessed_names_only(monkeypatch):
+    texts = [Text("KITCHEN", 15, 10, 0.9, False)]
+    tiles = {"meta": {"tiles": [{"id": 2, "name": "Lounge", "reason": "round seats"},
+                                {"id": 3, "name": "Private Office", "reason": "desk"}]}}
+    whole = {"meta": {"fixes": [{"id": 1, "name": "Bedroom", "reason": "wrong on purpose"},
+                                {"id": 2, "name": "Open Work Area", "reason": "counter with stools"}]}}
+    marks, regions, R = _setup(monkeypatch, texts, tiles)
+    calls = []
+
+    class W(R):
+        def see_each(self, prompt, png):
+            calls.append(prompt)
+            return whole if "whole floor plan" in prompt else tiles
+
+    labels = naming.name_spaces(np.zeros((30, 90), np.uint8), marks, regions, W())
+    assert labels[0].name == "Kitchen"                 # printed names never change
+    assert labels[1].name == "Open Work Area" and "was \"Lounge\"" in labels[1].note
+    assert labels[2].name == "Private Office"
