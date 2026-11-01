@@ -1,0 +1,39 @@
+"""A small per-visitor daily limit on the calls that spend Meta credits. In memory: a restart resets it,
+which is fine for a demo. Off in mock and local modes."""
+from __future__ import annotations
+
+import time
+from collections import defaultdict
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+from app.config import get_settings
+
+READS = ("/api/spaces", "/api/streets")                      # POST here = a new plan or photo read
+ACTIONS = ("/designs", "/simulate", "/future", "/ask", "/talk", "/comic", "/doctor", "/restyle",
+           "/render", "/family", "/compare")
+_hits: dict[tuple[str, str, int], int] = defaultdict(int)
+
+
+def _who(req: Request) -> str:
+    fwd = req.headers.get("x-forwarded-for", "")
+    return (fwd.split(",")[0].strip() or (req.client.host if req.client else "?"))
+
+
+async def limit(req: Request, call_next):
+    s = get_settings()
+    if req.method != "POST" or s.mode != "prod":
+        return await call_next(req)
+    path = req.url.path.rstrip("/")
+    kind = "read" if path in READS else "action" if any(a in path for a in ACTIONS) else None
+    if kind is None:
+        return await call_next(req)
+    day = int(time.time() // 86400)
+    key = (_who(req), kind, day)
+    cap = s.rate_reads_per_day if kind == "read" else s.rate_actions_per_day
+    if _hits[key] >= cap:
+        return JSONResponse({"detail": f"Daily limit reached for this demo ({cap} {'plan reads' if kind == 'read' else 'AI actions'}). "
+                                       "The sample plans still work. Try again tomorrow."}, status_code=429)
+    _hits[key] += 1
+    return await call_next(req)

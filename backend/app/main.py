@@ -15,15 +15,24 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 settings = get_settings()
 app = FastAPI(title="LifeSpace API", version="0.1.0")
+from app.ratelimit import limit as _limit   # noqa: E402
+app.middleware("http")(_limit)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=[o.strip() for o in settings.frontend_origin.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.include_router(spaces_router)
 app.include_router(catalog_router)
 app.include_router(streets_router)
+
+
+@app.on_event("startup")
+def _restore_data():
+    """Bring back saved plans and answers from Supabase before the first request (no-op without it)."""
+    from app import storage_sync
+    storage_sync.start()
 
 
 @app.get("/api/health")

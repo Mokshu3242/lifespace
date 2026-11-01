@@ -31,7 +31,7 @@ source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps
 pip install -r requirements.txt
 pip install rapidocr-onnxruntime==1.2.3 --no-deps   # OCR, without a second copy of OpenCV
 cp ../.env.example ../.env       # Windows: copy ..\.env.example ..\.env
-pytest -q                        # should say 7 passed
+pytest -q                        # should say about 100 passed
 ```
 
 Start the API:

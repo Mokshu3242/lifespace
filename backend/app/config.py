@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     request_timeout: float = 120.0
 
     frontend_origin: str = "http://localhost:5173"
+    # Supabase Storage keeps saved plans, designs, pictures and cached AI answers safe across restarts.
+    # Empty: everything stays on local disk only.
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    supabase_bucket: str = "lifespace"
+    # per visitor, per day: plan reads and model-heavy actions (protects the Meta credits)
+    rate_reads_per_day: int = 15
+    rate_actions_per_day: int = 60
 
 
 @lru_cache
