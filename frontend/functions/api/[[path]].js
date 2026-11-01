@@ -1,7 +1,7 @@
-// Cloudflare Pages Function: every /api/... request goes to the backend on Railway.
+// Cloudflare Pages Function: every /api/... request goes to the backend on Render.
 // The browser only ever talks to the Pages address, so there is no CORS to set up and
 // picture links like /api/spaces/<id>/image keep working as they are.
-// Set BACKEND_URL in Pages → Settings → Variables (for example https://lifespace-production.up.railway.app).
+// Set BACKEND_URL in Pages → Settings → Variables (for example https://lifespace-api.onrender.com).
 export async function onRequest({ request, env }) {
   const backend = (env.BACKEND_URL || '').replace(/\/$/, '')
   if (!backend) return new Response('BACKEND_URL is not set on this Pages project', { status: 500 })

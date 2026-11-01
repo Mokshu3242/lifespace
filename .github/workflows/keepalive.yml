@@ -1,10 +1,12 @@
-# Keeps the live demo awake through judging: wakes the backend (which also syncs with Supabase,
-# and free Supabase projects pause after a week with no activity).
+# Keeps the live demo awake through judging. Render's free plan sleeps after 15 minutes with no
+# traffic and takes about a minute to wake, so this pings every 10 minutes. It also keeps Supabase
+# active (free Supabase projects pause after a week with no activity).
+# GitHub may run scheduled jobs a few minutes late; that's fine.
 # Repo secret needed: LIVE_URL = the Cloudflare Pages address, e.g. https://lifespace.pages.dev
 name: keepalive
 on:
   schedule:
-    - cron: "17 */6 * * *"     # every 6 hours
+    - cron: "*/10 * * * *"     # every 10 minutes
   workflow_dispatch:
 jobs:
   ping:
@@ -15,5 +17,4 @@ jobs:
       - name: Wake the app
         run: |
           if [ -z "$LIVE_URL" ]; then echo "LIVE_URL secret not set"; exit 0; fi
-          curl -fsS --max-time 120 "$LIVE_URL/api/health"
-          curl -fsS --max-time 120 "$LIVE_URL/api/spaces" -o /dev/null
+          curl -fsS --retry 3 --retry-delay 20 --max-time 120 "$LIVE_URL/api/health"

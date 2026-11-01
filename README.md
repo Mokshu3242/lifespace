@@ -44,7 +44,7 @@ If a provider fails or returns bad JSON, the next one answers. Every answer is c
 
 ## Run it
 
-See [docs/SETUP.md](docs/SETUP.md) for local setup and [docs/DEPLOY.md](docs/DEPLOY.md) for the live site (Cloudflare Pages + Railway + Supabase + GitHub Actions).
+See [docs/SETUP.md](docs/SETUP.md) for local setup and [docs/DEPLOY.md](docs/DEPLOY.md) for the live site (Cloudflare Pages + Render + Supabase + GitHub Actions).
 
 ```bash
 # backend
@@ -71,9 +71,9 @@ backend/
   data/packs/            home, office, street packs (catalog, people)
   scripts/smoke_test.py  call real providers with your keys
   tests/                 offline tests
-  Dockerfile, railway.json  the backend on Railway
+  Dockerfile               the backend on Render (render.yaml at the repo root)
 frontend/                React + Vite + Three.js
-  functions/api/         Cloudflare Pages Function: /api → Railway
+  functions/api/         Cloudflare Pages Function: /api → Render
 .github/workflows/       tests on every push; keepalive ping
 docs/SETUP.md            local setup
 docs/DEPLOY.md           live site

@@ -1,0 +1,32 @@
+# Render Blueprint: the LifeSpace backend as a Docker web service.
+# Render → New → Blueprint → pick this repo. Secrets marked sync:false are asked for once in the dashboard.
+services:
+  - type: web
+    name: lifespace-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free            # free sleeps after 15 min idle (the keepalive workflow pings it); starter is $7/month
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: MODE
+        value: prod
+      - key: META_API_KEY
+        sync: false
+      - key: META_CHAT_MODEL
+        sync: false
+      - key: META_IMAGE_MODEL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: lifespace
+      - key: BASETEN_API_KEY
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
