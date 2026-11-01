@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.api.spaces import router as spaces_router
 from app.api.catalog import router as catalog_router
 from app.api.streets import router as streets_router
+from app.api.samples import router as samples_router
 from app.config import get_settings
 from app.router.model_router import AllProvidersFailed, CHAINS, get_router
 
@@ -27,6 +28,7 @@ app.add_middleware(
 app.include_router(spaces_router)
 app.include_router(catalog_router)
 app.include_router(streets_router)
+app.include_router(samples_router)
 
 
 @app.on_event("startup")

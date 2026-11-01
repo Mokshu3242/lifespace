@@ -24,6 +24,9 @@ services:
         sync: false
       - key: SUPABASE_BUCKET
         value: lifespace
+      # start-page samples: saved spaces opened by id (office and street are picked automatically if left out)
+      - key: SAMPLES
+        value: home:32ec7da602fa
       - key: BASETEN_API_KEY
         sync: false
       - key: CLOUDFLARE_ACCOUNT_ID

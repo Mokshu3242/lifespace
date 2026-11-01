@@ -36,12 +36,6 @@ const STEPS = [
   { n: 4, title: 'Watch them live it', text: 'The family lives the same day before and after. Paths, squeezes, blocked trips and scores are measured, not guessed.' },
 ]
 
-const SAMPLES = [
-  { file: 'home-terrace.jpg', pack: 'home', label: 'Home with terrace (best demo)', describe: '2-bed apartment with terrace', icon: '🌿' },
-  { file: 'office.png', pack: 'office', label: 'Small office', describe: 'small office', icon: '🏢' },
-  { file: 'street.jpg', pack: 'street', label: 'A city street', describe: '', icon: '🚏' },
-]
-
 const MODELS = [
   { name: 'Muse Spark 1.3', does: 'reads the plan, names rooms and furniture, plans the redesign, writes each person’s voice' },
   { name: 'Muse Image', does: 'draws the redesigned room from the real items in the design' },
@@ -80,13 +74,23 @@ export default function App() {
     if (sid) api.getStreet(sid).then(setStreet).catch(() => {})
   }, [])
 
+  // samples are plans already read and worked on: open them by id, instantly, with no model calls
+  const [samples, setSamples] = useState([])
+  useEffect(() => { fetch('/api/samples').then((r) => (r.ok ? r.json() : [])).then(setSamples).catch(() => {}) }, [])
+
   async function trySample(sm) {
-    setPack(sm.pack)
+    setBusy(true)
     setError(null)
     try {
-      const blob = await fetch(`/samples/${sm.file}`).then((r) => { if (!r.ok) throw new Error('Sample missing'); return r.blob() })
-      await upload(new File([blob], sm.file, { type: blob.type }), sm.pack, sm.describe)
+      if (sm.kind === 'street') {
+        setStreet(await api.getStreet(sm.id))
+        history.replaceState(null, '', `?street=${sm.id}#/`)
+      } else {
+        setSpace(await api.getSpace(sm.id))
+        history.replaceState(null, '', `?space=${sm.id}#/`)
+      }
     } catch (e) { setError(e.message) }
+    setBusy(false)
   }
 
   async function upload(file, usePack = pack, useDescribe = describe) {
@@ -195,12 +199,12 @@ export default function App() {
               {error && <p className="bad">{error}</p>}
             </section>
 
-            {!busy && (
+            {!busy && samples.length > 0 && (
               <section className="samples">
-                <span className="meta">No plan handy? Try one:</span>
-                {SAMPLES.map((sm) => (
-                  <button key={sm.file} className="sample" onClick={() => trySample(sm)}>
-                    <img src={`/samples/${sm.file}`} alt="" loading="lazy" />
+                <span className="meta">No plan handy? Open one that's ready (instant, already redesigned):</span>
+                {samples.map((sm) => (
+                  <button key={sm.kind} className="sample" onClick={() => trySample(sm)}>
+                    <img src={sm.thumb} alt="" loading="lazy" />
                     <span>{sm.icon} {sm.label}</span>
                   </button>
                 ))}
