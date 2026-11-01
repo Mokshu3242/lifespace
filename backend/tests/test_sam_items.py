@@ -65,7 +65,7 @@ def test_doorway_with_a_leaf_block_is_found_measured_and_opened():
 
 
 
-def test_gap_without_a_swing_is_not_a_door():
+def test_gap_between_rooms_without_a_swing_is_an_open_doorway():
     grid = np.zeros((20, 30), int)
     grid[10:] = 1
     grid[9:12, :] = -1
@@ -73,6 +73,18 @@ def test_gap_without_a_swing_is_not_a_door():
     gray = np.full((120, 180), 255, np.uint8)
     gray[54:72, :] = 0
     gray[54:72, 60:96] = 255
+    d = sam_items.doorways(gray, grid, 12.0, 6, [])
+    assert len(d) == 1 and d[0]["has_door"] is False and d[0]["rooms"] == [0, 1]
+
+
+def test_wide_gap_without_a_swing_is_not_a_door():
+    grid = np.zeros((20, 40), int)
+    grid[10:] = 1
+    grid[9:12, :] = -1
+    grid[9:12, 10:20] = 0                     # 60 in: an open plan gap, not a door
+    gray = np.full((120, 240), 255, np.uint8)
+    gray[54:72, :] = 0
+    gray[54:72, 60:120] = 255
     assert sam_items.doorways(gray, grid, 12.0, 6, []) == []
 
 

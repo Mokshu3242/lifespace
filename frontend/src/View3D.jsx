@@ -243,7 +243,19 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
           }
           const want = Math.max(-1.5, Math.min(1.5, (reach(1) - reach(-1)) / 2))
           r.off += (want - r.off) * Math.min(1, dt * 2)
-          const ex = x + px * r.off, ez = z + pz * r.off
+          // don't stare at a wall from an inch away: if the wall ahead is close, step back (if there's room behind)
+          const fx = Math.cos(r.yaw), fz = Math.sin(r.yaw)
+          const ray = (s, max) => {
+            for (let k = 1; k <= max; k++) {
+              const v = gridRef.current[Math.floor(z + fz * s * k * 0.5)]?.[Math.floor(x + fx * s * k * 0.5)]
+              if (v === undefined || v < 0) return (k - 1) * 0.5
+            }
+            return max * 0.5
+          }
+          const ahead = ray(1, 8), behind = ray(-1, 8)
+          const wantBack = ahead < 3 ? Math.min(3 - ahead, Math.max(0, behind - 0.5)) : 0
+          r.back = (r.back || 0) + (wantBack - (r.back || 0)) * Math.min(1, dt * 2)
+          const ex = x + px * r.off - fx * r.back, ez = z + pz * r.off - fz * r.back
           const pose = r.use ? (r.use.act === 'lie' || r.use.act === 'sit' ? r.use.act : r.use.act === 'watch' ? 'sit' : null) : null
           r.eyeNow = (r.eyeNow ?? r.eye) + (poseEye(r, pose) - (r.eyeNow ?? r.eye)) * Math.min(1, dt * 2.5)
           camera.position.set(ex, r.eyeNow, ez)

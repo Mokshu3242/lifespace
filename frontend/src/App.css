@@ -338,3 +338,9 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .plan-options { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 8px; }
 .plan-options .tool { text-align: left; font-size: 13px; }
 .plan-card[aria-disabled="true"] { opacity: 0.45; }
+.future { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: rgba(127, 127, 127, 0.08); }
+.future-row { display: flex; gap: 8px; margin: 6px 0; }
+.future-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+.future-scores div { display: flex; flex-direction: column; font-size: 13px; }
+.future-scores .down { color: #c0392b; font-style: normal; }
+.future-scores .up { color: #2f9e6b; font-style: normal; }

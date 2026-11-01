@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import { isMeta, modelLabel } from './mapStyle'
 import ScoreCard from './ScoreCard'
+import FuturePanel from './FuturePanel'
 
 /** AI people live a day Before and After. Numbers come from code; voices from the model. */
 export default function PeoplePanel({ space, design, sim, onSim, showAfter, playing, onPlay, focus, onFocus, clock }) {
@@ -80,6 +81,7 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
       </div>
       <button onClick={run} disabled={busy}>{busy ? 'Living the day…' : sim ? 'Run again' : 'Run a day'}</button>
       {error && <p className="bad">{error}</p>}
+      <FuturePanel space={space} design={design} showAfter={showAfter} />
 
       {sim && (
         <>

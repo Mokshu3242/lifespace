@@ -212,7 +212,7 @@ def find_doors(gray: np.ndarray, grid: np.ndarray, rooms: list, px_per_ft: float
     # doorways found by code (free, every mode): gaps in the walls, measured in image pixels;
     # a door swing drawn next to the gap means there's a real door in it
     from app.space.items import find_door_swings
-    code = doorways(gray, grid, px_per_ft, cell_in, find_door_swings(gray, px_per_ft))
+    code = doorways(gray, grid, px_per_ft, cell_in, find_door_swings(gray, px_per_ft), rooms)
     s = get_settings()
     if s.mode != "prod" or not s.meta_api_key:
         return code
@@ -259,7 +259,7 @@ def doors_from_boxes(boxes: list, grid: np.ndarray, px_per_ft: float, cell_in: f
 
 
 def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: float,
-             swings: list) -> list[dict]:
+             swings: list, rooms: list | None = None) -> list[dict]:
     """Every opening between two spaces: a short gap in the walls with floor on both sides. Found on the
     grid, then measured in image pixels along the wall (about an inch, not the grid's 6 in)."""
     from app.space.reader import find_walls
@@ -339,7 +339,14 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
         door = any(abs((b[0] + b[2]) / 2 / cell_px - cx) + abs((b[1] + b[3]) / 2 / cell_px - cy) <= 12 for b in swings)
         # only real doors: a swing drawn next to the gap, and wide enough for a person. Gaps between
         # counters, windows and the ends of furniture runs have no swing.
-        if not door or width_in < 20:
+        # a thin door arc is often missed by the swing finder. A clean gap of door size between two
+        # different rooms (not outside) is still a doorway, just without a door leaf we can see.
+        # only between two real indoor rooms: a window onto a terrace, or a built-in niche, is not a door
+        kinds = {r["id"]: r.get("kind") for r in (rooms or [])}
+        big = lambda i: (grid == i).sum() * (cell_in / 12) ** 2 >= 15
+        room_to_room = len(f["rooms"]) == 2 and not f["outside"] \
+            and all(kinds.get(i) != "outdoor" and big(i) for i in f["rooms"])
+        if width_in < 20 or not (door or (room_to_room and 24 <= width_in <= 42 and 4 <= f["n"] <= 8)):
             continue
         # the door leaf and its swing arc are an open door, not furniture: make them floor so people
         # walk through. Clear the -4 cells joined to the opening, within a door's reach of it

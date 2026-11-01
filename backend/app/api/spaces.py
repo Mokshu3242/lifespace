@@ -296,6 +296,39 @@ def run_simulation(space_id: str, ask: SimulateAsk):
     return out
 
 
+class FutureAsk(BaseModel):
+    years: int = 5
+    design_id: int | None = None
+
+
+@router.post("/{space_id}/future")
+def in_years(space_id: str, ask: FutureAsk):
+    """The same people, older, in the same home (or a redesign of it): what stops working."""
+    from app.space.future import future
+    from app.space.reader import context_line
+    from app.space.simulate import load_personas
+
+    if not 1 <= ask.years <= 30:
+        raise HTTPException(400, "Pick 1 to 30 years")
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    items = None
+    if ask.design_id is not None:
+        dp = _path(space_id, "designs") / f"{int(ask.design_id)}.json"
+        if not dp.exists():
+            raise HTTPException(404, "Design not found")
+        items = json.loads(dp.read_text(encoding="utf-8"))["items"]
+    fam = p.parent / "family.json"
+    people = json.loads(fam.read_text(encoding="utf-8"))["people"] if fam.exists() else load_personas(space.get("pack") or "home")
+    try:
+        return future(space, people, items, ask.years, get_router(),
+                      context_line(space.get("pack") or "home", space.get("describe") or ""))
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Models are unavailable: {e}")
+
+
 class RenderAsk(BaseModel):
     room_id: int
 

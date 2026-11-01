@@ -15,6 +15,11 @@ export const api = {
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
   listSpaces: () => fetch('/api/spaces').then(handle),
+  future: (id, years, designId) =>
+    fetch(`/api/spaces/${id}/future`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ years, design_id: designId ?? null }),
+    }).then(handle),
   compare: (ids, family) =>
     fetch('/api/spaces/compare', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, family }),

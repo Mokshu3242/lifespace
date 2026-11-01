@@ -50,7 +50,9 @@ def reachable(floor: Floor, width_in: float) -> set[int]:
     return {int(v) for v in np.unique(floor.grid[part]) if v >= 0}
 
 
-def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
+def score_side(space: dict, items: list[dict], days: dict, pack: str,
+               body: tuple[str, float] | None = None) -> dict:
+    """body: (name, width in) for the access check; default is a walker at home, a wheelchair in an office."""
     floor = Floor(space, items, pack)
     items = _active(items)
     rooms = [r for r in space["rooms"] if r.get("kind") != "closet"]
@@ -70,7 +72,7 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
                            + f"{tight:.0f} ft of tight squeezes across the day"}
 
     # ---- access: walker or wheelchair reach + turning space
-    name, width = ACCESS_BODY.get(pack, ("walker", 25))
+    name, width = body or ACCESS_BODY.get(pack, ("walker", 25))
     reach = reachable(floor, width)
     turn = floor.fits(TURN_IN)
     turn_rooms = {r["id"] for r in rooms if (turn & (floor.grid == r["id"])).any()}
@@ -127,7 +129,7 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str) -> dict:
         if r.get("kind") in ("room", "open") and not _named([r], "hall", "foyer", "corridor") \
                 and not (outside & (floor.grid == r["id"])).any():
             flags.append(f"{r['name']}: no outside wall, so likely little daylight")
-    out["flags"] = flags
+    out["flags"] = list(dict.fromkeys(flags))          # two rooms with one name give one flag
     return out
 
 
