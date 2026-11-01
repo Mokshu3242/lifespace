@@ -43,3 +43,11 @@ def test_same_picture_opens_the_saved_read(tmp_path, monkeypatch):
     sha = hashlib.sha256(b"PLAN").hexdigest()
     assert spaces._find_read(sha, "home", "")["id"] == "abcdefabcdef"
     assert spaces._find_read(sha, "office", "") is None
+
+
+def test_widen_refuses_when_a_builtin_is_next_to_the_door():
+    s = _with_door(3)
+    g = np.array(s["grid"]); g[10:13, 10:19] = -4; g[17:21, 10:19] = -4; s["grid"] = g.tolist()   # cabinets both sides
+    new, log = apply(s, [{"action": "widen_door", "door": 0, "width_in": 32}])
+    assert not log[0]["ok"] and "fits here" in log[0]["note"]
+    assert new["doors"][0]["width_in"] == 18

@@ -1,4 +1,42 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+
+// Real furniture models (KayKit Furniture Bits, CC0) for the common pieces. Each one is stretched to the
+// catalog's real width, depth and height, so what you see is exactly the size that was measured.
+const MODEL_BY_ID = {
+  'bed-queen': 'bed_double_A', 'bed-full': 'bed_double_A', 'bed-king': 'bed_double_A', 'bed-twin': 'bed_single_A',
+  'sofa-3': 'couch_pillows', 'sofa-2': 'couch_pillows', 'lounge-sofa': 'couch_pillows', loveseat: 'couch_pillows',
+  armchair: 'armchair_pillows', 'accent-chair': 'armchair_pillows', 'lounge-chair': 'armchair_pillows',
+  'dining-chair': 'chair_A_wood', 'cafe-chair': 'chair_A_wood', 'waiting-chair': 'chair_A_wood', 'meet-chair': 'chair_A_wood',
+  'bar-stool': 'chair_stool_wood', 'pantry-stool': 'chair_stool_wood',
+  'coffee-table': 'table_low', 'side-table': 'cabinet_small', 'side-table-home': 'cabinet_small', nightstand: 'cabinet_small',
+  dresser: 'cabinet_medium', sideboard: 'cabinet_medium', bookshelf: 'shelf_B_large_decorated',
+  'floor-lamp': 'lamp_standing', 'table-lamp': 'lamp_table', rug: 'rug_rectangle_A',
+  plant: 'cactus_medium_A', 'wall-art': 'pictureframe_large_A', 'cafe-table': 'table_medium',
+}
+const MODELS = {}            // name -> { scene, size } once loaded
+let loading = null
+export function loadModels() {
+  if (loading) return loading
+  const loader = new GLTFLoader()
+  const names = [...new Set(Object.values(MODEL_BY_ID))]
+  loading = Promise.all(names.map((n) => loader.loadAsync(`/models/kaykit/${n}.gltf`).then((g) => {
+    const box = new THREE.Box3().setFromObject(g.scene)
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3())
+    g.scene.position.set(-center.x, -box.min.y, -center.z)        // centered, standing on the floor
+    g.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+    const wrap = new THREE.Group(); wrap.add(g.scene)
+    MODELS[n] = { scene: wrap, size }
+  }).catch(() => null))).then(() => Object.keys(MODELS).length)
+  return loading
+}
+function modelFor(id, w, d, h) {
+  const m = MODELS[MODEL_BY_ID[id]]
+  if (!m) return null
+  const o = m.scene.clone(true)
+  o.scale.set(w / Math.max(0.01, m.size.x), h / Math.max(0.01, m.size.y), d / Math.max(0.01, m.size.z))
+  return o
+}
 
 /**
  * Real-looking furniture from simple shapes, scaled exactly to the catalog size.
@@ -236,7 +274,9 @@ export function buildItem(it, cat, cellIn, facing = 0) {
   if (kind === 'rug') { w = it.w; d = it.d }
   const inner = new THREE.Group()
   const thin = ['grabBar', 'nightLight', 'smokeAlarm', 'fan', 'pendant'].includes(kind)
-  B[kind](inner, thin ? Math.max(w, 2) : w, d, h, MATERIAL_BY_ID[it.item]?.())
+  const model = kind === 'rug' ? modelFor(it.item, w, d, Math.max(0.05, h)) : modelFor(it.item, w, d, h)
+  if (model) inner.add(model)
+  else B[kind](inner, thin ? Math.max(w, 2) : w, d, h, MATERIAL_BY_ID[it.item]?.())
   inner.rotation.y = facing
   g.add(inner)
   const hang = HANG_IN[it.item]

@@ -6,7 +6,7 @@ import { CODES, roomColor } from './mapStyle'
  * Reports cell clicks/drags through onPaint(row, col, isFirst).
  */
 export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, showPlan,
-  planImage, onPaint, items = [], selectedItem = null, people = [], ghost = null }) {
+  planImage, onPaint, items = [], selectedItem = null, people = [], ghost = null, doors = [], squeezes = [] }) {
   const ref = useRef(null)
   const dragging = useRef(false)
   const last = useRef(null)
@@ -170,6 +170,30 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       }
     }
 
+    // doorways: a bar across each opening, red when a walker (about 30 in with room to spare) can't pass
+    for (const d of doors) {
+      const half = (d.width_in / space.cell_in) / 2
+      const x = d.x * S, y = d.y * S
+      ctx.lineCap = 'round'
+      ctx.lineWidth = Math.max(3, S * 0.7)
+      ctx.strokeStyle = d.widened ? '#2f9e6b' : d.width_in < 30 ? '#d64545' : '#3a7bd5'
+      ctx.globalAlpha = 0.9
+      ctx.beginPath()
+      if (d.axis === 'x') { ctx.moveTo(x - half * S, y); ctx.lineTo(x + half * S, y) }
+      else { ctx.moveTo(x, y - half * S); ctx.lineTo(x, y + half * S) }
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
+    // where people squeeze past things: small orange dots on their path
+    ctx.fillStyle = '#f08c1a'
+    ctx.globalAlpha = 0.8
+    for (const [c, r] of squeezes) {
+      ctx.beginPath()
+      ctx.arc((c + 0.5) * S, (r + 0.5) * S, Math.max(2, S * 0.38), 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
+
     // people: a fading trail and a dot where they are now
     for (const p of people) {
       ctx.strokeStyle = p.color
@@ -210,7 +234,7 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       if (ctx.measureText(label).width + 10 > span && room.id !== selectedId) continue
       pill(ctx, label, (cx + 0.5) * S, (cy + 0.5) * S, 'rgba(255,255,255,0.88)', '#1d2320')
     }
-  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem, people, ghost])
+  }, [space, grid, rooms, entrance, selectedId, showPlan, planImage, cols, rows, S, items, selectedItem, people, ghost, doors, squeezes])
 
   function cellAt(e) {
     const rect = ref.current.getBoundingClientRect()

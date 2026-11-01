@@ -496,3 +496,25 @@ textarea { max-width: 100%; }
   .rail, .editor.three .sidebar { position: static; max-height: none; }
   .rail { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 }
+/* one scroll per side, thin and quiet */
+.editor.three .room-list { max-height: none; overflow: visible; }
+.rail { overflow: visible; max-height: none; }
+.rail-group { padding: 8px 10px; gap: 4px; }
+.rail .tool { padding: 5px 10px; font-size: 0.9rem; }
+.rail-chips .chip-stat { padding: 3px 8px; font-size: 0.76rem; }
+.editor.three .sidebar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.editor.three .sidebar:hover { scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
+.editor.three .sidebar::-webkit-scrollbar { width: 6px; }
+.editor.three .sidebar::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.editor.three .sidebar:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.editor.three .sidebar::-webkit-scrollbar-track { background: transparent; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 2px 0; font-size: 0.78rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .k { display: inline-block; width: 16px; height: 10px; border-radius: 3px; }
+.k.door-ok { height: 4px; background: #3a7bd5; }
+.k.door-narrow { height: 4px; background: #d64545; }
+.k.item { border: 2px dashed #2f5d8a; }
+.k.item-new { background: rgba(31, 122, 77, 0.4); border: 2px solid #1f7a4d; }
+.k.item-gone { border: 2px dashed #c0392b; }
+.k.squeeze { width: 9px; height: 9px; border-radius: 50%; background: #f08c1a; }
+.k.front { width: 10px; height: 10px; border-radius: 50%; background: #d64545; }

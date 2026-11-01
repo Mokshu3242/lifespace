@@ -103,11 +103,11 @@ export const api = {
   improveProgress: (id, job, since) => fetch(`/api/spaces/${id}/improve/${job}?since=${since}`).then(handle),
   designs: (id) => fetch(`/api/spaces/${id}/designs`).then(handle),
   catalog: (pack) => fetch(`/api/catalog/${pack}`).then(handle),
-  saveSpace: (id, { grid, rooms, entrance, items }) =>
+  saveSpace: (id, { grid, rooms, entrance, items, doors }) =>
     fetch(`/api/spaces/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grid, rooms, entrance, items }),
+      body: JSON.stringify({ grid, rooms, entrance, items, doors }),
     }).then(handle),
   imageUrl: (id) => `/api/spaces/${id}/image`,
 }

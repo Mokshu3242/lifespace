@@ -160,32 +160,57 @@ def apply(space: dict, fixes: list[dict]) -> tuple[dict, list[dict]]:
 
 
 def _widen(g: np.ndarray, d: dict, width_in: float, cell_in: float) -> None:
-    """Open the wall at a doorway to width_in, centered on the door: wall cells become the floor of the
-    room next to them. Only walls between two rooms, never the outside wall."""
-    n = int(np.ceil(width_in / cell_in))
+    """Open the wall at a doorway to width_in: wall cells between two floors become floor. The opening grows
+    along the wall from the door, both ways, only where there is floor on both sides (a closet or a built-in
+    next to the door stops it). Raises if it can't reach the width, and changes nothing then."""
+    if d.get("outside"):
+        raise ValueError("won't open an outside wall")
+    want = int(np.ceil(width_in / cell_in))
     r, c = int(round(d["y"] - 0.5)), int(round(d["x"] - 0.5))
     rows, cols = g.shape
     along = (0, 1) if d.get("axis") == "x" else (1, 0)      # the wall runs along this direction
     across = (1, 0) if d.get("axis") == "x" else (0, 1)
-    if d.get("outside"):
-        raise ValueError("won't open an outside wall")
-    for k in range(-(n // 2), n - n // 2):
+
+    def plan(k):
+        """Cells to fill to open line k of the wall, or None if this line can't be opened."""
         rr, cc = r + along[0] * k, c + along[1] * k
-        line = []
-        for t in range(-4, 5):
-            y, x = rr + across[0] * t, cc + across[1] * t
-            if 0 <= y < rows and 0 <= x < cols:
-                line.append((t, y, x))
-        # fill the wall cells between the nearest floor on each side
-        before = [(t, y, x) for t, y, x in line if t < 0 and g[y, x] >= 0]
-        after = [(t, y, x) for t, y, x in line if t > 0 and g[y, x] >= 0]
+        line = [(t, rr + across[0] * t, cc + across[1] * t) for t in range(-5, 6)]
+        line = [(t, y, x) for t, y, x in line if 0 <= y < rows and 0 <= x < cols]
+        before = [x for x in line if x[0] <= 0 and g[x[1], x[2]] >= 0]
+        after = [x for x in line if x[0] >= 0 and g[x[1], x[2]] >= 0]
         if not before or not after:
-            continue
-        lo, hi = max(before)[0], min(after)[0]
-        a_room, b_room = g[max(before)[1], max(before)[2]], g[min(after)[1], min(after)[2]]
-        for t, y, x in line:
-            if lo < t < hi and g[y, x] in (-1, -4):
-                g[y, x] = a_room if t <= 0 else b_room
+            return None
+        lo, hi = max(before), min(after)
+        if lo[0] == hi[0]:
+            return []                                        # already open here
+        mid = [(t, y, x) for t, y, x in line if lo[0] < t < hi[0]]
+        if any(g[y, x] not in (-1,) for _, y, x in mid):
+            return None                                      # something other than plain wall in the way
+        a, b = g[lo[1], lo[2]], g[hi[1], hi[2]]
+        return [(y, x, a if t <= 0 else b) for t, y, x in mid]
+
+    opened = {0: plan(0)}
+    if opened[0] is None:
+        raise ValueError("this doorway isn't a plain gap in a wall")
+    lo_k = hi_k = 0
+    while hi_k - lo_k + 1 < want:
+        grew = False
+        for k in (hi_k + 1, lo_k - 1):
+            if hi_k - lo_k + 1 >= want:
+                break
+            p = plan(k)
+            if p is not None:
+                opened[k] = p
+                lo_k, hi_k = min(lo_k, k), max(hi_k, k)
+                grew = True
+        if not grew:
+            break
+    got = (hi_k - lo_k + 1) * cell_in
+    if got + 1 < width_in:
+        raise ValueError(f"only {got:.0f} in fits here: a closet, built-in or corner is right next to this door")
+    for cells in opened.values():
+        for y, x, v in cells:
+            g[y, x] = v
     d["width_in"] = round(width_in)
     d["widened"] = True
 

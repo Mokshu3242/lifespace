@@ -109,6 +109,17 @@ export default function PlanEditor({ space, onReset }) {
     const i = Math.min(w.pts.length - 1, Math.floor(step))
     return { color: w.color, trail: w.pts.slice(Math.max(0, i - 400), i + 1), at: w.pts[Math.max(0, i)] }
   }).filter((p) => p.at)
+  // squeeze spots of the day shown (or of the person picked), for the 2D map
+  const squeezes = useMemo(() => {
+    if (!sim || tab !== 'people') return []
+    const side = showAfter ? 'after' : 'before'
+    const out = []
+    for (const p of sim.personas) {
+      if (focus && p.id !== focus) continue
+      for (const lg of sim[side][p.id]?.legs || []) for (const pt of lg.squeeze || []) out.push(pt)
+    }
+    return out
+  }, [sim, tab, showAfter, focus])
   const clockWalk = walks[0]
   const clock = clockWalk && step > 0
     ? [...clockWalk.marks].reverse().find((m) => m.at <= step)?.label : null
@@ -279,9 +290,20 @@ export default function PlanEditor({ space, onReset }) {
               : (tab === 'redesign' || tab === 'people') && design
                 ? (showAfter ? design.items : items)
                 : items}
-            selectedItem={selectedItem} />
+            selectedItem={selectedItem} doors={doors} squeezes={squeezes} />
           )}
         </div>
+        {view === '2d' && (
+          <div className="legend" aria-label="Map key">
+            <span><i className="k door-ok" />Doorway</span>
+            <span><i className="k door-narrow" />Too narrow for a walker</span>
+            <span><i className="k item" />Item found</span>
+            <span><i className="k item-new" />New in the redesign</span>
+            <span><i className="k item-gone" />Taken out</span>
+            {tab === 'people' && sim && <span><i className="k squeeze" />Tight squeeze</span>}
+            <span><i className="k front" />Front door</span>
+          </div>
+        )}
       </div>
 
       <aside className="sidebar">

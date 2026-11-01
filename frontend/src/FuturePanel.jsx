@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
+import { modelLabel } from './mapStyle'
 
 /** In 5 years: the same people, older, in the same home. What stops working, measured the same way as today. */
 export default function FuturePanel({ space, design, showAfter }) {
@@ -63,7 +64,7 @@ export default function FuturePanel({ space, design, showAfter }) {
               </li>
             ))}
           </ul>
-          <p className="meta">{out.note}{out.provider && ` · Voices by ${out.provider}`}</p>
+          <p className="meta">{out.note}{out.provider && ` · Voices by ${modelLabel(out.provider)}`}</p>
         </div>
       )}
     </details>

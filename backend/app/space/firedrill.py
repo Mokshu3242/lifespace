@@ -14,6 +14,10 @@ GOAL_S = 120          # fire services say you may have about 2 minutes to get ou
 
 
 def _wake_s(age: int, mob: str) -> tuple[int, str]:
+    if mob == "dog":
+        return 10, "a dog is up at once, but someone has to open the door"
+    if mob == "toddler":
+        return 60, "a toddler has to be carried out by an adult"
     if age < 12:
         return 45, "a child may sleep through the alarm and needs an adult"
     if age >= 75 or mob != "none":
@@ -62,7 +66,7 @@ def drill_one(space: dict, floor: Floor, person: dict) -> dict:
                 "why": f"no way out {width:.0f} in wide: someone has to help"}
     path, exit_name = best
     ft_per_cell = floor.cell_in / 12
-    speed = SPEED.get(mob, 3.0) * (0.85 if age < 12 else 1.0)
+    speed = {"dog": 6.0, "toddler": 2.5}.get(mob) or SPEED.get(mob, 3.0) * (0.85 if age < 12 else 1.0)
     walk_s = tight_ft = ft = 0.0
     for a, b in zip(path, path[1:]):
         step = (1.414 if a[0] != b[0] and a[1] != b[1] else 1.0) * ft_per_cell

@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { CODES, roomColor } from './mapStyle'
-import { buildItem, facingFor, actionFor, kindOf } from './furniture3d'
+import { buildItem, facingFor, actionFor, kindOf, loadModels } from './furniture3d'
 import { typicalFurniture } from './typicalFurniture'
 import MiniMap from './MiniMap'
 
@@ -48,7 +53,12 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
   const [orbit, setOrbit] = useState(false)
   const [fullWalls, setFullWalls] = useState(false)
   const [lived, setLived] = useState(true)
-  const [night, setNight] = useState(false)     // 2 AM: lights off, only night lights glow
+  const [night, setNight] = useState(false)
+  const [models, setModels] = useState(0)      // real furniture models loaded (redraw when they arrive)
+  useEffect(() => { loadModels().then(setModels) }, [])
+  const [ao, setAo] = useState(true)          // soft corner shadows (turn off on slow computers)
+  const aoOn = useRef(true)
+  aoOn.current = ao     // 2 AM: lights off, only night lights glow
   const [typical, setTypical] = useState(true)   // fill empty rooms with obvious furniture (picture only)
   const [rider, setRider] = useState(null)        // walk id being ridden
   const [hud, setHud] = useState(null)
@@ -76,7 +86,11 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     controls.maxPolarAngle = Math.PI / 2.1
     controls.enableDamping = true
 
-    const hemi = new THREE.HemisphereLight(0xfff6e8, 0x8a8577, 1.5)
+    // soft, even light from a studio "room" picture (no file to load), so walls don't go brown or glare
+    const pmrem = new THREE.PMREMGenerator(renderer)
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+    scene.environmentIntensity = 0.55
+    const hemi = new THREE.HemisphereLight(0xfff6e8, 0x8a8577, 1.0)
     scene.add(hemi)
     const sun = new THREE.DirectionalLight(0xfff2dd, 1.6)
     sun.position.set(cols * 0.3, Math.max(cols, rows) * 1.2, rows * 0.1)
@@ -91,9 +105,19 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       people: new THREE.Group(), ghost: new THREE.Group() }
     Object.values(groups).forEach((g) => scene.add(g))
 
+    // soft shadows where walls meet floors and around furniture (ambient occlusion)
+    const composer = new EffectComposer(renderer)
+    composer.addPass(new RenderPass(scene, camera))
+    const gtao = new GTAOPass(scene, camera, el.clientWidth || 800, 500)
+    gtao.updateGtaoMaterial({ radius: 2.5, distanceExponent: 1.5, thickness: 2, scale: 1.2, samples: 12 })
+    gtao.blendIntensity = 0.85
+    composer.addPass(gtao)
+    composer.addPass(new OutputPass())
+
     function resize() {
       const w = el.clientWidth, h = Math.max(360, Math.round(w * 0.62))
       renderer.setSize(w, h)
+      composer.setSize(w, h)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
     }
@@ -286,7 +310,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
           g.visible = dx * dx + dz * dz > (r.pose || r.use ? 1.2 : 2.2) ** 2 || g.position.y > (r.eyeNow ?? r.eye)
         }
       }
-      renderer.render(scene, camera)
+      if (aoOn.current) composer.render()
+      else renderer.render(scene, camera)
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -296,6 +321,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       cancelAnimationFrame(raf)
       ro.disconnect()
       controls.dispose()
+      composer.dispose()
+      pmrem.dispose()
       renderer.dispose()
       el.removeChild(renderer.domElement)
       three.current = null
@@ -590,7 +617,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
   useEffect(() => {
     const t = three.current
     if (!t) return
-    t.hemi.intensity = night ? 0.12 : 1.5
+    t.hemi.intensity = night ? 0.12 : 1.0
+    t.scene.environmentIntensity = night ? 0.03 : 0.55
     t.hemi.color.set(night ? 0x8fa6d6 : 0xfff6e8)
     t.sun.intensity = night ? 0.15 : 1.6
     t.sun.color.set(night ? 0x9fb4e6 : 0xfff2dd)
@@ -656,7 +684,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
       mesh.castShadow = !gone
       t.groups.items.add(mesh)
     }
-  }, [items, catalog, cell, lived, grid, rooms, typical, walks, night])
+  }, [items, catalog, cell, lived, grid, rooms, typical, walks, night, models])
 
   // ---- people where they are now, with their trail (hidden while riding along)
   useEffect(() => {
@@ -905,6 +933,8 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
             <button className={fullWalls ? 'tool on' : 'tool'} onClick={() => setFullWalls((f) => !f)}>Full walls</button>
             <button className={night ? 'tool on' : 'tool'} onClick={() => setNight((n) => !n)}
               title="2 AM: house lights off, only night lights glow. Ride along starts at the night trip">Night</button>
+            <button className={ao ? 'tool on' : 'tool'} onClick={() => setAo((v) => !v)}
+              title="Soft shadows in corners and under furniture. Turn off if the 3D view feels slow">Soft shadows</button>
           </>
         )}
       </div>

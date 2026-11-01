@@ -72,6 +72,7 @@ class Leg:
     tight_ft: float = 0
     blocked: bool = False
     why: str = ""
+    squeeze: list = field(default_factory=list)  # [[col, row], ...] where this trip squeezes past things
 
 
 @dataclass
@@ -287,6 +288,7 @@ def live_a_day(floor: Floor, person: dict) -> Day:
         steps = sum(1.414 if (a[0] != b[0] and a[1] != b[1]) else 1.0 for a, b in zip(path, path[1:]))
         leg.ft = round(steps * ft_per_cell, 1)
         leg.tight_ft = round(sum(1 for p in path if tight[p]) * ft_per_cell, 1)
+        leg.squeeze = [[c, r] for r, c in path if tight[r, c]][::2]     # every other cell is enough to draw
         at = goal
     day = Day(legs=legs)
     day.walked_ft = round(sum(lg.ft for lg in legs), 1)
