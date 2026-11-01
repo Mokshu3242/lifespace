@@ -36,11 +36,12 @@ def _clean(space: dict) -> dict:
     # a tiny sliver with the same name as a bigger room (two "Kitchen"s) is part of that room
     rooms = space.get("rooms") or []
     if rooms and space.get("grid"):
+        import cv2
         import numpy as np
         g = np.array(space["grid"])
         ft2 = (space.get("cell_in", 6) / 12) ** 2
         size = {r["id"]: int((g == r["id"]).sum()) for r in rooms}
-        drop = set()
+        drop, moved = set(), {}
         for r in rooms:
             twins = [o for o in rooms if o is not r and o["name"].lower() == r["name"].lower() and o["id"] not in drop]
             if twins and size[r["id"]] * ft2 < 12:
@@ -48,9 +49,26 @@ def _clean(space: dict) -> dict:
                 if size[big["id"]] > size[r["id"]]:
                     g[g == r["id"]] = big["id"]
                     drop.add(r["id"])
+                    moved[r["id"]] = big["id"]
+        # slivers under 4 sq ft (a gap between two fills, a hatched floor) join the room they touch most
+        for r in rooms:
+            if r["id"] in drop or size[r["id"]] * ft2 >= 4:
+                continue
+            m = g == r["id"]
+            ring = cv2.dilate(m.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~m
+            near = [int(v) for v in g[ring] if v >= 0 and v not in drop and v != r["id"]]
+            if near:
+                to = max(set(near), key=near.count)
+                g[m] = to
+                size[to] += size[r["id"]]
+                drop.add(r["id"])
+                moved[r["id"]] = to
         if drop:
             space["rooms"] = [r for r in rooms if r["id"] not in drop]
             space["grid"] = g.tolist()
+            for it in space.get("items") or []:
+                if it.get("room") in moved:
+                    it["room"] = moved[it["room"]]
     return space
 MAX_BYTES = 15 * 1024 * 1024
 ID_RE = re.compile(r"^[a-f0-9]{12}$")
@@ -445,6 +463,85 @@ def get_render(space_id: str, design_id: int, room_id: int):
     if not out.exists():
         raise HTTPException(404, "No picture yet")
     return FileResponse(out, media_type="image/png")
+
+
+@router.post("/{space_id}/designs/{design_id}/restyle")
+async def restyle_photo(space_id: str, design_id: int, room_id: int = Query(...), file: UploadFile = File(...)):
+    """Muse Image edit: put this design's changes for one room into the user's own photo of that room."""
+    from app.space.render import restyle_prompt
+
+    p = _path(space_id, "map.json")
+    dp = _path(space_id, "designs") / f"{int(design_id)}.json"
+    if not (p.exists() and dp.exists()):
+        raise HTTPException(404, "Design not found")
+    data = await file.read()
+    if len(data) > MAX_BYTES:
+        raise HTTPException(413, "Photo is too big (15 MB max)")
+    if not (data[:3] == b"\xff\xd8\xff" or data[:8] == b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(400, "Use a JPG or PNG photo")
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    if not any(r["id"] == room_id for r in space["rooms"]):
+        raise HTTPException(404, "Room not found")
+    design = json.loads(dp.read_text(encoding="utf-8"))
+    prompt = restyle_prompt(space, design, room_id)
+    router_ = get_router()
+    try:
+        png = router_.render(prompt, data)
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Image models are unavailable: {e}")
+    stem = f"{int(design_id)}_photo{int(room_id)}"
+    (dp.parent / f"{stem}_before.img").write_bytes(data)
+    (dp.parent / f"{stem}.png").write_bytes(png)
+    base = f"/api/spaces/{space_id}/designs/{int(design_id)}/photo/{int(room_id)}"
+    who = router_.last_provider or ""
+    return {"before": base + "?which=before", "after": base, "prompt": prompt,
+            "provider": who.replace("meta", "meta-image", 1) if who.startswith("meta") else who}
+
+
+@router.get("/{space_id}/designs/{design_id}/photo/{room_id}")
+def get_photo(space_id: str, design_id: int, room_id: int, which: str = "after"):
+    stem = f"{int(design_id)}_photo{int(room_id)}"
+    out = _path(space_id, "designs") / (f"{stem}_before.img" if which == "before" else f"{stem}.png")
+    if not out.exists():
+        raise HTTPException(404, "No photo yet")
+    return FileResponse(out, media_type="image/jpeg" if which == "before" and out.read_bytes()[:2] == b"\xff\xd8" else "image/png")
+
+
+class TalkAsk(BaseModel):
+    person_id: str
+    message: str
+    history: list[dict] = []
+    design_id: int | None = None
+
+
+@router.post("/{space_id}/talk")
+def talk_to(space_id: str, ask: TalkAsk):
+    """Talk to one person about their day; they answer only from what was measured."""
+    from app.space.reader import context_line
+    from app.space.talk import talk
+
+    if not ask.message.strip():
+        raise HTTPException(400, "Say something")
+    p = _path(space_id, "map.json")
+    if not p.exists():
+        raise HTTPException(404, "Space not found")
+    space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    items, changes = None, []
+    if ask.design_id is not None:
+        dp = _path(space_id, "designs") / f"{int(ask.design_id)}.json"
+        if not dp.exists():
+            raise HTTPException(404, "Design not found")
+        d = json.loads(dp.read_text(encoding="utf-8"))
+        items, changes = d["items"], d.get("changes", [])
+    fam = p.parent / "family.json"
+    people = json.loads(fam.read_text(encoding="utf-8"))["people"] if fam.exists() else None
+    try:
+        return talk(space, ask.person_id, ask.message, ask.history, items, people, changes, get_router(),
+                    context_line(space.get("pack") or "home", space.get("describe") or ""))
+    except KeyError:
+        raise HTTPException(404, "No such person")
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Models are unavailable: {e}")
 
 
 class FamilyAsk(BaseModel):

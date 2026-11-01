@@ -342,8 +342,10 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
         # a thin door arc is often missed by the swing finder. A clean gap of door size between two
         # different rooms (not outside) is still a doorway, just without a door leaf we can see.
         # only between two real indoor rooms: a window onto a terrace, or a built-in niche, is not a door
-        kinds = {r["id"]: r.get("kind") for r in (rooms or [])}
-        names = {r["id"]: (r.get("name") or "").lower() for r in (rooms or [])}
+        # rooms are dicts on saved plans and Room objects while a plan is read
+        rd = [r if isinstance(r, dict) else vars(r) for r in (rooms or [])]
+        kinds = {r["id"]: r.get("kind") for r in rd}
+        names = {r["id"]: (r.get("name") or "").lower() for r in rd}
         big = lambda i: (grid == i).sum() * (cell_in / 12) ** 2 >= 8 and "built" not in names.get(i, "")
         room_to_room = len(f["rooms"]) == 2 and not f["outside"] \
             and all(kinds.get(i) != "outdoor" and big(i) for i in f["rooms"])

@@ -262,8 +262,9 @@ def detect_items(gray: np.ndarray, grid: list[list[int]], rooms: list, px_per_ft
                 continue
             if top == "none":
                 top = next(p for p, _ in count.most_common() if p != "none")
-            source = "models agree" if n == len(picks) else "most models"
-            unsure = n * 2 <= len(picks) or len(picks) == 1
+            # one model alone (prod runs Muse Spark only) isn't a disagreement: don't flag every item
+            source = "one model" if len(picks) == 1 else "models agree" if n == len(picks) else "most models"
+            unsure = len(picks) > 1 and n * 2 <= len(picks)
         else:
             top = _option_id(*opts[k][0])
             source, note, unsure = "best size match", "no model answered; closest size in the catalog", True

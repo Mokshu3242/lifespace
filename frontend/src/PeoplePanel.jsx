@@ -5,6 +5,7 @@ import ScoreCard from './ScoreCard'
 import FuturePanel from './FuturePanel'
 import FireDrill from './FireDrill'
 import AskPanel from './AskPanel'
+import TalkPanel from './TalkPanel'
 
 /** AI people live a day Before and After. Numbers come from code; voices from the model. */
 export default function PeoplePanel({ space, design, sim, onSim, showAfter, playing, onPlay, focus, onFocus, clock }) {
@@ -86,6 +87,7 @@ export default function PeoplePanel({ space, design, sim, onSim, showAfter, play
       <h3 className="whatif">What if…</h3>
       <FuturePanel space={space} design={design} showAfter={showAfter} />
       <FireDrill space={space} design={design} />
+      {sim && <TalkPanel space={space} design={design} showAfter={showAfter} people={sim.personas} />}
       <AskPanel space={space} design={design} showAfter={showAfter} />
 
       {sim && (

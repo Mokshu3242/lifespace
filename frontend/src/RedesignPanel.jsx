@@ -168,7 +168,18 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
     setImproving(false)
   }
 
-  useEffect(() => { setPicture(null) }, [design?.id, pictureRoom])
+  useEffect(() => { setPicture(null); setPhoto(null) }, [design?.id, pictureRoom])
+  const [photo, setPhoto] = useState(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoSide, setPhotoSide] = useState('after')
+
+  async function restyle(file) {
+    const roomId = pictureRoom ?? changedRooms[0]
+    if (!file || roomId == null) return
+    setPhotoBusy(true); setError(null)
+    try { setPhoto({ ...(await api.restyle(space.id, design.id, roomId, file)), t: Date.now() }); setPhotoSide('after') } catch (e) { setError(e.message) }
+    setPhotoBusy(false)
+  }
 
   async function draw() {
     const roomId = pictureRoom ?? changedRooms[0]
@@ -324,6 +335,23 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
                 </select>
                 <button onClick={draw} disabled={drawing}>{drawing ? 'Drawing…' : 'Picture this room'}</button>
               </div>
+              <label className={photoBusy ? 'photo-btn busy' : 'photo-btn'}>
+                {photoBusy ? 'Putting the changes into your photo…' : '📷 Use my own photo of this room'}
+                <input type="file" accept="image/png,image/jpeg" hidden disabled={photoBusy}
+                  onChange={(e) => { restyle(e.target.files[0]); e.target.value = '' }} />
+              </label>
+              {photo && (
+                <div className="photo-compare">
+                  <div className="tabs">
+                    <button className={photoSide === 'before' ? 'on' : ''} onClick={() => setPhotoSide('before')}>Your photo</button>
+                    <button className={photoSide === 'after' ? 'on' : ''} onClick={() => setPhotoSide('after')}>With the redesign</button>
+                  </div>
+                  <img src={photoSide === 'before' ? `${photo.before}&t=${photo.t}` : `${photo.after}?t=${photo.t}`}
+                    alt={photoSide === 'before' ? 'Your photo' : 'Your photo with the redesign'} />
+                  <p className={isMeta(photo.provider) ? 'powered meta' : 'powered'}>Edited by {modelLabel(photo.provider)} · only this design's items added</p>
+                  <p className="meta">Your photo is kept with this plan on this server. Don't use photos with people in them.</p>
+                </div>
+              )}
               {picture && (
                 <>
                   <button className="picture-open" onClick={() => setBig(true)} title="See it full size">

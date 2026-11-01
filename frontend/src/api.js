@@ -57,6 +57,16 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ design_id: designId }),
     }).then(handle),
+  restyle: (id, designId, roomId, file) => {
+    const body = new FormData()
+    body.append('file', file)
+    return fetch(`/api/spaces/${id}/designs/${designId}/restyle?room_id=${roomId}`, { method: 'POST', body }).then(handle)
+  },
+  talk: (id, personId, message, history, designId) =>
+    fetch(`/api/spaces/${id}/talk`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ person_id: personId, message, history, design_id: designId ?? null }),
+    }).then(handle),
   renderRoom: (id, designId, roomId) =>
     fetch(`/api/spaces/${id}/designs/${designId}/render`, {
       method: 'POST',
