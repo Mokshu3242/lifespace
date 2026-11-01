@@ -24,7 +24,9 @@ class Mirror:
     def __init__(self, url: str, key: str, bucket: str):
         self.base = url.rstrip("/") + "/storage/v1"
         self.bucket = bucket
-        self.h = {"Authorization": f"Bearer {key}", "apikey": key}
+        # new-style secret keys (sb_secret_...) go only in the apikey header; Supabase turns them into a
+        # service token. Legacy service_role keys (a JWT) also work as a Bearer token.
+        self.h = {"apikey": key} if key.startswith("sb_") else {"Authorization": f"Bearer {key}", "apikey": key}
         self.client = httpx.Client(timeout=60)
         self.seen: dict[str, float] = {}
 
