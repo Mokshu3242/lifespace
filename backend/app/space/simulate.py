@@ -192,7 +192,7 @@ def _targets(floor: Floor, use: str, home: str, passable: np.ndarray, at: tuple[
     """Every place a step could happen, nearest first: [(cell, room name)], or [(None, reason)]."""
     if use in ("exit", "enter"):
         if floor.entrance is None:
-            return None, "no entrance marked"
+            return [(None, "no entrance marked on the plan")]
         c, r = floor.entrance
         cell = _nearest(passable, r, c)
         return [(cell, "entrance")] if cell else [(None, "can't reach the door")]
@@ -258,9 +258,9 @@ def live_a_day(floor: Floor, person: dict) -> Day:
         if at is None:
             leg.blocked, leg.why = True, "stuck: no floor wide enough to stand on"
             continue
-        options = _targets(floor, step["use"], home, passable, at)
-        if options[0][0] is None:
-            leg.blocked, leg.why = True, options[0][1]
+        options = [o for o in (_targets(floor, step["use"], home, passable, at) or []) if o]
+        if not options or options[0][0] is None:
+            leg.blocked, leg.why = True, options[0][1] if options else f"no place to {step['use']} here"
             continue
         path, goal, where = None, None, options[0][1]
         for cell, name in options[:6]:          # nearest first; take the first one they can reach

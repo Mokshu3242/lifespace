@@ -22,6 +22,17 @@ def _clean(space: dict) -> dict:
     from app.space.items import dedupe
     if space.get("items"):
         space["items"] = dedupe(space["items"])
+    # saved before the door finder set the entrance: use the front door
+    if not space.get("entrance") and space.get("doors"):
+        front = [d for d in space["doors"] if d.get("outside")]
+        if front:
+            import numpy as np
+            d = min(front, key=lambda d: abs(d["width_in"] - 34))
+            g = np.array(space["grid"])
+            ys, xs = np.nonzero(g >= 0)
+            if len(ys):
+                j = int(np.argmin((ys - d["y"]) ** 2 + (xs - d["x"]) ** 2))
+                space["entrance"] = [int(xs[j]), int(ys[j])]
     return space
 MAX_BYTES = 15 * 1024 * 1024
 ID_RE = re.compile(r"^[a-f0-9]{12}$")

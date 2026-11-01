@@ -790,6 +790,15 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     from app.space.sam_items import find_doors
     smap.doors = find_doors(gray, g, smap.rooms, smap.px_per_ft, smap.cell_in, router)
     smap.grid = g.tolist()          # doorways cleared of door leaves read as blocks
+    # no entrance yet: the front door the door finder found is the way in
+    if smap.entrance is None:
+        front = [d for d in smap.doors if d.get("outside")]
+        if front:
+            d = min(front, key=lambda d: abs(d["width_in"] - 34))     # the most door-like one
+            ys, xs = np.nonzero(g >= 0)
+            if len(ys):
+                j = int(np.argmin((ys - d["y"]) ** 2 + (xs - d["x"]) ** 2))
+                smap.entrance = (int(xs[j]), int(ys[j]))
 
     unnamed = sum(1 for lb in labels if lb.name.startswith("Space "))
     if unnamed:

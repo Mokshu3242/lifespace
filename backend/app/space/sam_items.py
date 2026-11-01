@@ -290,9 +290,18 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
                 # a doorway joins two different spaces (look a little further in, past thick walls)
                 sides = []
                 for sgn in (-1, 1):
-                    v = next((int(grid[cell(line + sgn * d, k0 + n // 2)]) for d in range(2, 7)
-                              if open_(*cell(line + sgn * d, k0 + n // 2))
-                              or grid[cell(line + sgn * d, k0 + n // 2)] == -2), None)   # -2: outside (front door)
+                    # look past the wall and past a drawn swing (-4 cells) for the space beyond
+                    v = None
+                    for d in range(2, 13):
+                        rr, cc = cell(line + sgn * d, k0 + n // 2)
+                        if not (0 <= rr < rows and 0 <= cc < cols):
+                            break
+                        g = grid[rr, cc]
+                        if g >= 0 or g == -2:          # -2: outside (front door)
+                            v = int(g)
+                            break
+                        if g == -1 and d > 4:          # a wall beyond the swing: nothing there
+                            break
                     sides.append(v)
                 if None in sides or sides[0] == sides[1] or max(sides) < 0:
                     continue
@@ -327,17 +336,36 @@ def doorways(gray: np.ndarray, grid: np.ndarray, px_per_ft: float, cell_in: floa
         if not 14 <= width_in <= 72:
             width_in = round(f["n"] * cell_in)
         cx, cy = f["c"] + 0.5, f["r"] + 0.5
-        door = any(abs((b[0] + b[2]) / 2 / cell_px - cx) + abs((b[1] + b[3]) / 2 / cell_px - cy) <= 8 for b in swings)
+        door = any(abs((b[0] + b[2]) / 2 / cell_px - cx) + abs((b[1] + b[3]) / 2 / cell_px - cy) <= 12 for b in swings)
         # only real doors: a swing drawn next to the gap, and wide enough for a person. Gaps between
         # counters, windows and the ends of furniture runs have no swing.
         if not door or width_in < 20:
             continue
-        # the door leaf in this doorway is an open door, not furniture: make it floor so people walk through
-        for dl in range(-3, 4):
-            for kk in range(f["k0"], f["k0"] + f["n"]):
-                rr, cc = f["cell"](f["line"] + dl, kk)
-                if 0 <= rr < rows and 0 <= cc < cols and grid[rr, cc] == -4:
-                    grid[rr, cc] = f["side_room"]
+        # the door leaf and its swing arc are an open door, not furniture: make them floor so people
+        # walk through. Clear the -4 cells joined to the opening, within a door's reach of it
+        reach = f["n"] + 3
+        seeds = [f["cell"](f["line"], kk) for kk in range(f["k0"], f["k0"] + f["n"])]
+        todo = [rc for rc in seeds if grid[rc] == -4] + [rc for rc in seeds if grid[rc] >= 0]
+        seen = set(todo)
+        cleared = []
+        while todo:
+            rr, cc = todo.pop()
+            if grid[rr, cc] == -4:
+                cleared.append((rr, cc))
+            for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                r2, c2 = rr + a, cc + b
+                if (r2, c2) in seen or not (0 <= r2 < rows and 0 <= c2 < cols) or grid[r2, c2] != -4:
+                    continue
+                if abs(r2 - f["r"]) > reach or abs(c2 - f["c"]) > reach:
+                    continue
+                seen.add((r2, c2))
+                todo.append((r2, c2))
+        # each cleared cell joins the room it's open to (nearest floor cell)
+        ys, xs = np.nonzero(grid >= 0)
+        for rr, cc in cleared:
+            if len(ys):
+                j = int(np.argmin((ys - rr) ** 2 + (xs - cc) ** 2))
+                grid[rr, cc] = grid[ys[j], xs[j]]
         out.append({"x": round(cx, 2), "y": round(cy, 2), "width_in": width_in, "axis": f["axis"],
                     "outside": f["outside"],
                     "rooms": f["rooms"], "has_door": door, "source": "code", "conf": 1.0,

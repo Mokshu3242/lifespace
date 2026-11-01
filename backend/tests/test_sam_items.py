@@ -74,3 +74,19 @@ def test_gap_without_a_swing_is_not_a_door():
     gray[54:72, :] = 0
     gray[54:72, 60:96] = 255
     assert sam_items.doorways(gray, grid, 12.0, 6, []) == []
+
+
+
+def test_door_with_a_big_swing_arc_beyond_the_wall_is_opened():
+    # hallway (5) above, work area (9) below; the doorway and the swing below it are drawn as a block
+    grid = np.full((30, 30), 5, int)
+    grid[15:] = 9
+    grid[12:14, :] = -1
+    grid[12:20, 12:17] = -4          # door leaf in the wall and its arc spilling 6 rows into the room
+    gray = np.full((180, 180), 255, np.uint8)
+    gray[72:84, :] = 0
+    gray[72:84, 72:102] = 255
+    swing = [(72, 84, 102, 120, 0.8)]
+    doors = sam_items.doorways(gray, grid, 12.0, 6, swing)
+    assert len(doors) == 1 and doors[0]["rooms"] == [5, 9]
+    assert (grid[12:20, 12:17] >= 0).all()      # leaf and arc are floor now
