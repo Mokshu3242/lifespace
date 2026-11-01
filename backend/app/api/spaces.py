@@ -77,6 +77,100 @@ async def create_space(file: UploadFile = File(...),
     return out
 
 
+@router.get("")
+def list_spaces():
+    """Saved plans grouped by layout (the same image uploaded again is one layout), newest first,
+    each with every redesign made on any of its reads."""
+    import hashlib
+    groups: dict[str, dict] = {}
+    for f in sorted(STORE.glob("*/map.json"), key=lambda f: f.stat().st_mtime, reverse=True)[:200]:
+        try:
+            s = json.loads(f.read_text(encoding="utf-8"))
+            img = f.parent / "plan.img"
+            key = hashlib.sha256(img.read_bytes()).hexdigest()[:16] if img.exists() else s["id"]
+        except (OSError, ValueError, KeyError):
+            continue
+        g = groups.get(key)
+        if g is None:
+            g = groups[key] = {"id": s["id"], "pack": s.get("pack") or "home", "describe": s.get("describe") or "",
+                               "size_ft": [s.get("width_ft"), s.get("height_ft")],
+                               "rooms": [r["name"] for r in s.get("rooms", []) if r.get("kind") != "closet"][:8],
+                               "reads": 0, "designs": []}
+        g["reads"] += 1
+        # only design files ("1.json"); room pictures sit next to them as "1_room10.json"
+        for d in sorted((x for x in (f.parent / "designs").glob("*.json") if x.stem.isdigit()), key=lambda x: int(x.stem)):
+            try:
+                dj = json.loads(d.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            kept = [c for c in dj.get("changes", []) if not c.get("dropped")]
+            g["designs"].append({"ref": f"{s['id']}:{d.stem}", "n": int(d.stem), "summary": (dj.get("summary") or "")[:90],
+                                 "spent_usd": dj.get("spent_usd", 0), "budget_usd": dj.get("budget_usd", 0),
+                                 "changes": len(kept), "goals": (dj.get("goals") or "")[:60]})
+    out = list(groups.values())
+    for g in out:
+        # the same redesign saved on several reads shows once; number them 1, 2, 3 across the layout
+        seen, uniq = set(), []
+        for d in g["designs"]:
+            key = (d["summary"], round(d["spent_usd"]), d["changes"])
+            if key not in seen:
+                seen.add(key)
+                uniq.append(d)
+        g["designs"] = uniq[-8:]                  # the latest few redesigns of this layout
+        for k, d in enumerate(g["designs"], 1):
+            d["label"] = k
+    return out[:24]
+
+
+class CompareAsk(BaseModel):
+    ids: list[str]
+    family: str = ""
+
+
+@router.post("/compare")
+def compare_plans(ask: CompareAsk):
+    """The same people live the same day in 2 or 3 plans; code ranks them, Muse Spark explains why."""
+    from app.space.compare import compare
+    from app.space.family import check_people, family_prompt
+    from app.space.reader import context_line
+
+    refs = list(dict.fromkeys(ask.ids))          # "id" = the plan as it is, "id:n" = its redesign n
+    if not 2 <= len(refs) <= 3:
+        raise HTTPException(400, "Pick 2 or 3 options")
+    spaces, options = [], []
+    for ref in refs:
+        sid, _, n = ref.partition(":")
+        p = _path(sid, "map.json")
+        if not p.exists():
+            raise HTTPException(404, f"Plan {sid} not found")
+        spaces.append(_clean(json.loads(p.read_text(encoding="utf-8"))))
+        if n:
+            dp = _path(sid, "designs") / f"{int(n)}.json"
+            if not dp.exists():
+                raise HTTPException(404, f"Design {n} of plan {sid} not found")
+            d = json.loads(dp.read_text(encoding="utf-8"))
+            options.append((d["items"], f"redesign {n}: ${d.get('spent_usd', 0):,.0f}"))
+        else:
+            options.append((None, "as it is"))
+    ids = [r.partition(":")[0] for r in refs]
+    if len({s.get("pack") or "home" for s in spaces}) > 1:
+        raise HTTPException(400, "Compare homes with homes, offices with offices")
+    ctx = context_line(spaces[0].get("pack") or "home", "")
+    people = None
+    text = " ".join(ask.family.split())
+    router_ = get_router()
+    try:
+        if text:
+            ans = router_.ask_json(family_prompt(text, spaces[0]["rooms"], ctx))
+            people, _ = check_people(ans, spaces[0]["rooms"])
+        else:
+            fam = _path(ids[0], "family.json")
+            people = json.loads(fam.read_text(encoding="utf-8"))["people"] if fam.exists() else None
+        return compare(spaces, people, router_, ctx, options)
+    except AllProvidersFailed as e:
+        raise HTTPException(503, f"Models are unavailable: {e}")
+
+
 @router.get("/{space_id}")
 def get_space(space_id: str):
     p = _path(space_id, "map.json")

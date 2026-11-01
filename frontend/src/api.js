@@ -14,6 +14,11 @@ export const api = {
     return fetch(`/api/spaces?${q}`, { method: 'POST', body }).then(handle)
   },
   getSpace: (id) => fetch(`/api/spaces/${id}`).then(handle),
+  listSpaces: () => fetch('/api/spaces').then(handle),
+  compare: (ids, family) =>
+    fetch('/api/spaces/compare', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, family }),
+    }).then(handle),
   uploadStreet: (file) => {
     const body = new FormData()
     body.append('file', file)

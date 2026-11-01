@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import PlanEditor from './PlanEditor'
 import HowItWorks from './HowItWorks'
 import StreetView from './StreetView'
+import ComparePage from './ComparePage'
 import { api } from './api'
 import './App.css'
 
@@ -83,7 +84,7 @@ export default function App() {
     history.replaceState(null, '', `${location.pathname}#/`)
   }
 
-  const page = route.startsWith('#/how') ? 'how' : 'app'
+  const page = route.startsWith('#/how') ? 'how' : route.startsWith('#/compare') ? 'compare' : 'app'
 
   return (
     <div className="site">
@@ -93,6 +94,7 @@ export default function App() {
         </a>
         <nav>
           <a href="#/" className={page === 'app' ? 'on' : ''}>{space ? 'Your space' : 'Start'}</a>
+          <a href="#/compare" className={page === 'compare' ? 'on' : ''}>Compare homes</a>
           <a href="#/how" className={page === 'how' ? 'on' : ''}>How it works</a>
         </nav>
         {health && <span className={health.mode === 'prod' ? 'pill meta-pill' : 'pill'}>
@@ -100,12 +102,13 @@ export default function App() {
         </span>}
       </header>
 
-      <main className={(space || street) && page === 'app' ? 'shell wide' : 'shell'}>
+      <main className={((space || street) && page === 'app') || page === 'compare' ? 'shell wide' : 'shell'}>
         {backendDown && (
           <p className="bad">Backend not reachable. Start it with: uvicorn app.main:app --reload --port 8000</p>
         )}
 
         {page === 'how' && <HowItWorks models={MODELS} />}
+        {page === 'compare' && <ComparePage />}
 
         {page === 'app' && !space && !street && (
           <>

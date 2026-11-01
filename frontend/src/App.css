@@ -305,3 +305,36 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .street-side input, .street-side textarea { background: var(--card, #fff); color: inherit; border: 1px solid rgba(127, 127, 127, 0.4); border-radius: 6px; padding: 6px 8px; }
 .seg.two button { opacity: 0.6; }
 .seg.two button.on { opacity: 1; }
+
+/* apartment chooser */
+.compare .plan-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 14px 0; }
+.plan-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 8px; border-radius: 10px;
+  border: 2px solid transparent; background: var(--card, #fff); color: inherit; position: relative; }
+.plan-card img { width: 100%; height: 120px; object-fit: contain; background: #fff; border-radius: 6px; }
+.plan-card.on { border-color: #2f9e6b; }
+.plan-card .badge { position: absolute; top: 12px; right: 12px; }
+.plan-card:disabled { opacity: 0.45; }
+.compare-form { display: flex; flex-direction: column; gap: 8px; max-width: 640px; }
+.compare-form textarea { width: 100%; }
+.verdict { padding: 14px 16px; border-radius: 10px; background: rgba(47, 158, 107, 0.12); margin: 16px 0; }
+.compare-cols { display: grid; gap: 12px; }
+.compare-col { padding: 10px; border-radius: 10px; background: var(--card, #fff); border: 2px solid transparent; }
+.compare-col.best { border-color: #2f9e6b; }
+.compare-col img { width: 100%; height: 160px; object-fit: contain; background: #fff; border-radius: 6px; }
+.score-mini { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 6px 0; }
+.score-mini .bar { grid-column: 1 / -1; height: 5px; background: rgba(127, 127, 127, 0.25); border-radius: 3px; overflow: hidden; }
+.score-mini .bar span { display: block; height: 100%; background: #2f9e6b; }
+.who { width: 100%; font-size: 13px; margin-top: 8px; border-collapse: collapse; }
+.who td, .who th { text-align: left; padding: 3px 4px; }
+.bad-row td { color: #c0392b; }
+.good { color: #2f9e6b; margin: 4px 0; }
+.bad-soft { color: #c0392b; margin: 4px 0; }
+.breakers li { color: #c0392b; }
+@media (max-width: 800px) { .compare-cols { grid-template-columns: 1fr !important; } }
+.compare-upload { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.plan-card { padding: 0; }
+.plan-face { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 8px; width: 100%;
+  background: none; border: 0; color: inherit; }
+.plan-options { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 8px; }
+.plan-options .tool { text-align: left; font-size: 13px; }
+.plan-card[aria-disabled="true"] { opacity: 0.45; }

@@ -55,7 +55,7 @@ def get_street(street_id: str):
     p = _folder(street_id)
     out = json.loads((p / "street.json").read_text(encoding="utf-8"))
     out["designs"] = [json.loads(f.read_text(encoding="utf-8"))
-                      for f in sorted((p / "designs").glob("*.json"), key=lambda f: int(f.stem))]
+                      for f in sorted((f for f in (p / "designs").glob("*.json") if f.stem.isdigit()), key=lambda f: int(f.stem))]
     return out
 
 
@@ -80,7 +80,7 @@ def create_design(street_id: str, ask: StreetAsk):
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Models are unavailable: {e}")
     folder = p / "designs"
-    n = len(list(folder.glob("*.json"))) + 1
+    n = len([f for f in folder.glob("*.json") if f.stem.isdigit()]) + 1
     while True:
         try:
             with open(folder / f"{n}.json", "x", encoding="utf-8") as f:

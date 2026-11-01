@@ -113,6 +113,8 @@ def occupancy(grid: np.ndarray, items: list[dict], pack: str) -> np.ndarray:
     """True where people can walk: room floor with no furniture on it."""
     free = grid >= 0
     for it in items:
+        if it.get("status") in ("removed", "replaced"):     # taken out by a redesign: no longer in the way
+            continue
         if not blocks_floor(it, pack):
             continue
         c0, r0, c1, r1 = _cells(it)
