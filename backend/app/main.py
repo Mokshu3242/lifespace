@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.router.model_router import AllProvidersFailed, CHAINS, get_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)      # not one line per file or model call
 
 settings = get_settings()
 app = FastAPI(title="LifeSpace API", version="0.1.0")

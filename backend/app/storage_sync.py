@@ -27,7 +27,7 @@ class Mirror:
         # new-style secret keys (sb_secret_...) go only in the apikey header; Supabase turns them into a
         # service token. Legacy service_role keys (a JWT) also work as a Bearer token.
         self.h = {"apikey": key} if key.startswith("sb_") else {"Authorization": f"Bearer {key}", "apikey": key}
-        self.client = httpx.Client(timeout=60)
+        self.client = httpx.Client(timeout=60, limits=httpx.Limits(max_connections=20))
         self.seen: dict[str, float] = {}
 
     def _list(self, prefix: str) -> list[str]:
@@ -50,23 +50,33 @@ class Mirror:
         return out
 
     def restore(self) -> int:
+        """Download every saved file that isn't on disk yet, 16 at a time (plans first, then answers)."""
+        from concurrent.futures import ThreadPoolExecutor
         n = 0
         for top in FOLDERS:
             try:
-                names = self._list(top)
+                names = [x for x in self._list(top) if not (ROOT / x).exists()]
             except httpx.HTTPError as e:
                 log.warning("restore list %s failed: %s", top, e)
                 continue
-            for name in names:
+
+            def one(name):
+                try:
+                    r = self.client.get(f"{self.base}/object/{self.bucket}/{name}", headers=self.h)
+                except httpx.HTTPError:
+                    return 0
+                if r.status_code != 200:
+                    return 0
                 dest = ROOT / name
-                if dest.exists():
-                    continue
-                r = self.client.get(f"{self.base}/object/{self.bucket}/{name}", headers=self.h)
-                if r.status_code == 200:
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    dest.write_bytes(r.content)
-                    self.seen[name] = dest.stat().st_mtime
-                    n += 1
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                tmp = dest.with_name(dest.name + ".part")
+                tmp.write_bytes(r.content)
+                tmp.replace(dest)                         # never a half-written file
+                self.seen[name] = dest.stat().st_mtime
+                return 1
+            with ThreadPoolExecutor(max_workers=16) as pool:
+                n += sum(pool.map(one, names))
+            log.info("Supabase: restored %s (%d files)", top, len(names))
         return n
 
     def push_changes(self) -> int:
@@ -106,13 +116,21 @@ class Mirror:
 
 
 def start() -> bool:
+    """Start in the background so the web server opens its port at once (hosts like Render wait for it).
+    Saved plans come back within seconds; until then a plan link may say "not found" once."""
     s = get_settings()
     if not (s.supabase_url and s.supabase_service_key):
         log.info("Supabase not set: data stays on local disk")
         return False
     m = Mirror(s.supabase_url, s.supabase_service_key, s.supabase_bucket)
-    got = m.restore()
-    m.push_changes()                       # files made before the first sync go up now
-    log.info("Supabase: restored %d files, syncing every %ds", got, EVERY_S)
-    threading.Thread(target=m.loop, daemon=True, name="supabase-sync").start()
+
+    def run():
+        try:
+            got = m.restore()
+            m.push_changes()                   # files made before the first sync go up now
+            log.info("Supabase: restored %d files, syncing every %ds", got, EVERY_S)
+        except Exception as e:
+            log.warning("Supabase restore failed: %s", e)
+        m.loop()
+    threading.Thread(target=run, daemon=True, name="supabase-sync").start()
     return True
