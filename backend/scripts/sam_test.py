@@ -2,6 +2,7 @@
 
     cd backend
     python -m scripts.sam_test path/to/plan.png
+    python -m scripts.sam_test path/to/street.jpg --street
 
 Needs META_API_KEY in .env. Costs about $0.0025 per word asked (10 words = 2.5 cents).
 Writes <plan>_sam.png next to the plan with a box around everything SAM found.
@@ -18,6 +19,8 @@ import httpx
 from app.config import get_settings
 
 WORDS = ["bed", "sofa", "chair", "dining table", "desk", "toilet", "bathtub", "sink", "stove", "door"]
+STREET = ["sidewalk", "crosswalk", "curb ramp", "bench", "tree", "street light", "pole", "trash can",
+          "bus stop", "parked car", "bicycle lane", "stairs"]
 BOX_RE = re.compile(r"<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)(?:;c=([\d.]+))?\|>")
 COLORS = [(220, 40, 40), (40, 160, 40), (40, 40, 220), (200, 120, 0), (160, 0, 160),
           (0, 150, 150), (120, 80, 20), (90, 90, 90), (230, 0, 120), (0, 100, 230)]
@@ -73,7 +76,8 @@ def main():
     png = buf.tobytes()
     out = img.copy()
     total = 0
-    for i, word in enumerate(WORDS):
+    words = STREET if "--street" in sys.argv else WORDS
+    for i, word in enumerate(words):
         t0 = time.time()
         boxes, raw = ask_sam(png, word, s.meta_api_key, s.meta_base_url)
         total += len(boxes)

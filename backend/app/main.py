@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.api.spaces import router as spaces_router
 from app.api.catalog import router as catalog_router
+from app.api.streets import router as streets_router
 from app.config import get_settings
 from app.router.model_router import AllProvidersFailed, CHAINS, get_router
 
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 app.include_router(spaces_router)
 app.include_router(catalog_router)
+app.include_router(streets_router)
 
 
 @app.get("/api/health")
@@ -35,8 +37,10 @@ class AskIn(BaseModel):
 
 @app.post("/api/ask")
 def ask(body: AskIn):
-    """Dev-only smoke test for the router."""
+    """Dev-only smoke test for the router. Off in prod so nobody can spend the credits."""
     router = get_router()
+    if router.s.mode == "prod":
+        raise HTTPException(404, "Not available in prod mode")
     try:
         text = router.ask(body.prompt)
     except AllProvidersFailed as e:

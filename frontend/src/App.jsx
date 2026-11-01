@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import PlanEditor from './PlanEditor'
 import HowItWorks from './HowItWorks'
+import StreetView from './StreetView'
 import { api } from './api'
 import './App.css'
 
 const PACKS = [
   { id: 'home', label: 'Home' },
   { id: 'office', label: 'Office' },
-  { id: 'street', label: 'Street', soon: true },
+  { id: 'street', label: 'Street' },
 ]
 
 const STEPS = [
@@ -39,6 +40,7 @@ export default function App() {
   const [health, setHealth] = useState(null)
   const [backendDown, setBackendDown] = useState(false)
   const [space, setSpace] = useState(null)
+  const [street, setStreet] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -50,6 +52,8 @@ export default function App() {
     api.health().then(setHealth).catch(() => setBackendDown(true))
     const id = new URLSearchParams(location.search).get('space')
     if (id) api.getSpace(id).then(setSpace).catch(() => {})
+    const sid = new URLSearchParams(location.search).get('street')
+    if (sid) api.getStreet(sid).then(setStreet).catch(() => {})
   }, [])
 
   async function upload(file) {
@@ -57,6 +61,13 @@ export default function App() {
     setBusy(true)
     setError(null)
     try {
+      if (pack === 'street') {
+        const st = await api.uploadStreet(file)
+        setStreet(st)
+        history.replaceState(null, '', `?street=${st.id}#/`)
+        setBusy(false)
+        return
+      }
       const s = await api.uploadPlan(file, { fresh, pack, describe })
       setSpace(s)
       history.replaceState(null, '', `?space=${s.id}#/`)
@@ -68,6 +79,7 @@ export default function App() {
 
   function reset() {
     setSpace(null)
+    setStreet(null)
     history.replaceState(null, '', `${location.pathname}#/`)
   }
 
@@ -88,14 +100,14 @@ export default function App() {
         </span>}
       </header>
 
-      <main className={space && page === 'app' ? 'shell wide' : 'shell'}>
+      <main className={(space || street) && page === 'app' ? 'shell wide' : 'shell'}>
         {backendDown && (
           <p className="bad">Backend not reachable. Start it with: uvicorn app.main:app --reload --port 8000</p>
         )}
 
         {page === 'how' && <HowItWorks models={MODELS} />}
 
-        {page === 'app' && !space && (
+        {page === 'app' && !space && !street && (
           <>
             <section className="hero">
               <h1>Will this place work for the people who live in it?</h1>
@@ -114,7 +126,8 @@ export default function App() {
               {busy ? (
                 <>
                   <div className="spinner" />
-                  <p>Reading your plan: walls, doors, rooms, printed sizes and furniture. About a minute.</p>
+                  <p>{pack === 'street' ? 'Reading your street: Meta SAM 3.1 finds lights, benches, bins and sidewalks; Muse Spark reads the surface and shade. About 30 seconds.'
+                    : 'Reading your plan: walls, doors, rooms, printed sizes and furniture. About a minute.'}</p>
                 </>
               ) : (
                 <>
@@ -128,12 +141,13 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  <input className="describe" maxLength={40} value={describe}
+                  {pack !== 'street' && <input className="describe" maxLength={40} value={describe}
                     onChange={(e) => setDescribe(e.target.value)}
-                    placeholder={pack === 'office' ? 'Describe it (optional): tech startup office' : 'Describe it (optional): 2-bed apartment'} />
-                  <p>Drop a PNG or JPG here, or choose a file. Plans with printed room sizes read best.</p>
+                    placeholder={pack === 'office' ? 'Describe it (optional): tech startup office' : 'Describe it (optional): 2-bed apartment'} />}
+                  <p>{pack === 'street' ? 'Drop a photo of a street, taken from the sidewalk.'
+                    : 'Drop a PNG or JPG here, or choose a file. Plans with printed room sizes read best.'}</p>
                   <label className="file-btn">
-                    Choose a floor plan
+                    {pack === 'street' ? 'Choose a street photo' : 'Choose a floor plan'}
                     <input type="file" accept="image/png,image/jpeg" onChange={(e) => upload(e.target.files[0])} hidden />
                   </label>
                   <label className="fresh">
@@ -170,6 +184,7 @@ export default function App() {
         )}
 
         {page === 'app' && space && <PlanEditor key={space.id} space={space} onReset={reset} />}
+        {page === 'app' && street && !space && <StreetView key={street.id} street={street} onReset={reset} />}
       </main>
 
       <footer className="foot">

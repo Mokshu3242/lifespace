@@ -284,3 +284,24 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .doors-found { font-size: 13px; margin: 8px 0; }
 .doors-found ul { margin: 4px 0 0; padding-left: 18px; }
 .doors-found li.narrow { color: #c0392b; }
+
+/* street check */
+.street { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.street-photo { position: relative; border-radius: 10px; overflow: hidden; }
+.street-photo img { display: block; width: 100%; }
+.street-photo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.street-tools { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; min-height: 32px; }
+.street-side label { display: block; margin: 6px 0; }
+.street-side input, .street-side textarea { width: 100%; }
+.score-row.overall { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.score-head { display: flex; justify-content: space-between; }
+.up { color: #2f9e6b; font-style: normal; }
+.flags li { margin: 4px 0; }
+@media (max-width: 900px) { .street { grid-template-columns: 1fr; } }
+.street .bar { height: 6px; background: rgba(127, 127, 127, 0.25); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+.street .bar span { display: block; height: 100%; background: #2f9e6b; }
+.street-design .changes li { display: block; margin: 8px 0; }
+.street-design .changes .badge { margin-right: 4px; }
+.street-side input, .street-side textarea { background: var(--card, #fff); color: inherit; border: 1px solid rgba(127, 127, 127, 0.4); border-radius: 6px; padding: 6px 8px; }
+.seg.two button { opacity: 0.6; }
+.seg.two button.on { opacity: 1; }
