@@ -30,8 +30,9 @@ class Mirror:
         self.client = httpx.Client(timeout=60, limits=httpx.Limits(max_connections=20))
         self.seen: dict[str, float] = {}
 
-    def _list(self, prefix: str) -> list[str]:
-        """Every object path under prefix (Storage lists one folder at a time)."""
+    def _list(self, prefix: str, rows_out: list | None = None) -> list[str]:
+        """Every object path under prefix (Storage lists one folder at a time). With rows_out, also
+        collects (path, size in bytes, last updated ISO time) for each object."""
         out, todo = [], [prefix]
         while todo:
             folder = todo.pop()
@@ -44,6 +45,9 @@ class Mirror:
                 for row in rows:
                     path = f"{folder}/{row['name']}" if folder else row["name"]
                     (out if row.get("id") else todo).append(path)     # no id: it's a folder
+                    if row.get("id") and rows_out is not None:
+                        meta = row.get("metadata") or {}
+                        rows_out.append((path, int(meta.get("size") or 0), row.get("updated_at") or row.get("created_at") or ""))
                 if len(rows) < 1000:
                     break
                 offset += 1000
@@ -77,6 +81,18 @@ class Mirror:
             with ThreadPoolExecutor(max_workers=16) as pool:
                 n += sum(pool.map(one, names))
             log.info("Supabase: restored %s (%d files)", top, len(names))
+        return n
+
+    def delete(self, paths: list[str]) -> int:
+        """Remove objects from the bucket, 100 at a time."""
+        n = 0
+        for i in range(0, len(paths), 100):
+            r = self.client.request("DELETE", f"{self.base}/object/{self.bucket}", headers=self.h,
+                                    json={"prefixes": paths[i:i + 100]})
+            if r.status_code < 300:
+                n += len(paths[i:i + 100])
+            else:
+                log.warning("delete failed: %s %s", r.status_code, r.text[:200])
         return n
 
     def push_changes(self) -> int:
@@ -113,6 +129,14 @@ class Mirror:
                 self.push_changes()
             except Exception as e:          # never let the sync thread die
                 log.warning("sync round failed: %s", e)
+
+
+def mirror() -> Mirror | None:
+    """A Mirror for one-off jobs (scripts), or None without Supabase settings."""
+    s = get_settings()
+    if not (s.supabase_url and s.supabase_service_key):
+        return None
+    return Mirror(s.supabase_url, s.supabase_service_key, s.supabase_bucket)
 
 
 def start() -> bool:

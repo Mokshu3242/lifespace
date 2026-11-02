@@ -1,0 +1,39 @@
+# Prepare the demo: runs each sample's day on its latest designs and saves the results to Supabase,
+# so judges open finished results. Runs in the pre-built image (starts in seconds), with 7 GB memory.
+# Repo secrets needed: SUPABASE_URL, SUPABASE_SERVICE_KEY, META_API_KEY, META_CHAT_MODEL, META_IMAGE_MODEL.
+name: prepare demo
+on:
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Every saved plan, not just the samples"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "41 7 * * *"        # every night, 2:41 AM Eastern
+permissions:
+  contents: read
+  packages: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/mokshu3242/lifespace-backend:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      MODE: prod
+      OCR_TILE: "0"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      SUPABASE_BUCKET: lifespace
+      META_API_KEY: ${{ secrets.META_API_KEY }}
+      META_CHAT_MODEL: ${{ secrets.META_CHAT_MODEL }}
+      META_IMAGE_MODEL: ${{ secrets.META_IMAGE_MODEL }}
+      SAMPLES: home:32ec7da602fa
+    steps:
+      - name: Run the samples' days and save them
+        working-directory: /srv/backend
+        run: python -m scripts.prepare_demo ${{ inputs.all && '--all' || '' }}

@@ -72,6 +72,23 @@ the free plan runs out of memory.
   `LIVE_URL` = `https://<project>.pages.dev`.
   Then run it once by hand: **Actions → keepalive → Run workflow**.
 
+## 4b. Big jobs on GitHub (5 min)
+
+Heavy background work runs in GitHub Actions, not on the 512 MB server:
+
+| Workflow | When | What it does |
+| --- | --- | --- |
+| `backend image` | every push to `backend/` | builds the backend with OpenCV and OCR installed and keeps it in GitHub's free registry (`ghcr.io/mokshu3242/lifespace-backend`), so the jobs below start in seconds |
+| `prepare demo` | nightly, or by hand | runs each sample's day on its latest designs and saves the results to Supabase (tick "all" for every saved plan) |
+| `clean up storage` | Sundays, or by hand | removes saved AI answers not used for 14 days; plans, designs, pictures and lessons are never removed. By hand it only reports unless you untick "dry run" |
+
+Add these repo secrets (**Settings → Secrets and variables → Actions**): `SUPABASE_URL`,
+`SUPABASE_SERVICE_KEY`, `META_API_KEY`, `META_CHAT_MODEL`, `META_IMAGE_MODEL`. Then run `backend image` once
+by hand (Actions → backend image → Run workflow), and after it, `prepare demo`.
+
+Each job starts on a fresh machine, so nothing stays running between jobs; the image is what makes them
+start fast. Things people click (reading a plan, a redesign) stay on Render.
+
 ## 5. Load the demo once (5 min)
 
 On the live site, click each sample plan once and run the demo flow on the terrace home. Each answer is

@@ -1,0 +1,32 @@
+# Clean up storage: removes saved AI answers not used for 14 days, so Supabase's free 1 GB stays small.
+# Plans, designs, pictures and lessons are never removed. Repo secrets: SUPABASE_URL, SUPABASE_SERVICE_KEY.
+name: clean up storage
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only report, delete nothing"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "23 8 * * 0"        # Sundays
+permissions:
+  contents: read
+  packages: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: ghcr.io/mokshu3242/lifespace-backend:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      SUPABASE_BUCKET: lifespace
+    steps:
+      - name: Report and remove old saved answers
+        working-directory: /srv/backend
+        run: python -m scripts.cleanup_storage --days 14 ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
