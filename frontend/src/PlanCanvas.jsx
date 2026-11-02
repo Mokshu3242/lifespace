@@ -184,16 +184,6 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.stroke()
       ctx.globalAlpha = 1
     }
-    // where people squeeze past things: small orange dots on their path
-    ctx.fillStyle = '#f08c1a'
-    ctx.globalAlpha = 0.8
-    for (const [c, r] of squeezes) {
-      ctx.beginPath()
-      ctx.arc((c + 0.5) * S, (r + 0.5) * S, Math.max(2, S * 0.38), 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.globalAlpha = 1
-
     // people: a fading trail and a dot where they are now
     for (const p of people) {
       ctx.strokeStyle = p.color
@@ -215,6 +205,17 @@ export default function PlanCanvas({ space, grid, rooms, entrance, selectedId, s
       ctx.lineWidth = 2
       ctx.beginPath()
       ctx.arc((c + 0.5) * S, (r + 0.5) * S, Math.max(6, S * 1.2), 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+
+    // where people squeeze past things: orange dots with a white edge, drawn over the trails
+    ctx.fillStyle = '#f08c1a'
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth = Math.max(1.5, S * 0.18)
+    for (const [c, r] of squeezes) {
+      ctx.beginPath()
+      ctx.arc((c + 0.5) * S, (r + 0.5) * S, Math.max(3.5, S * 0.62), 0, Math.PI * 2)
       ctx.fill()
       ctx.stroke()
     }

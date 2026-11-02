@@ -518,3 +518,9 @@ textarea { max-width: 100%; }
 .k.item-gone { border: 2px dashed #c0392b; }
 .k.squeeze { width: 9px; height: 9px; border-radius: 50%; background: #f08c1a; }
 .k.front { width: 10px; height: 10px; border-radius: 50%; background: #d64545; }
+
+/* 3D buttons: one row that scrolls sideways instead of wrapping */
+.view3d-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.view3d-tools > * { flex: none; }
+.view3d-tools.fp-pick { flex-wrap: wrap; overflow-x: visible; }
+.learned { color: var(--accent); font-weight: 600; }

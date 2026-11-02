@@ -488,7 +488,7 @@ export default function View3D({ space, grid, rooms, items = [], people = [], gh
     const walls = runs(CODES.WALL)
     addRuns(walls, 0, wallIn, solid(wallColor))
     addRuns(runs(CODES.FIXTURE), 0, FIXTURE_IN, solid(fixColor))
-    addRuns(runs('BLOB'), 0, lived ? FIXTURE_IN : wallIn, solid(lived ? 0xd9d3c7 : 0xf4f1ea))
+    addRuns(runs('BLOB'), 0, lived ? FIXTURE_IN : wallIn, solid(lived ? 0xc9a27a : 0xf4f1ea))   // built-ins read as warm wood cabinets in Lived-in
     const facadeRuns = runs('FACADE')
     if (facadeRuns.length) {
       // sill wall, window glass with a frame band, and the wall above

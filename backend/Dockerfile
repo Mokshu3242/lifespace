@@ -12,7 +12,10 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt && pip install rapidocr-onnxruntime==1.2.3 --no-deps
 COPY . .
 
-ENV MODE=prod
+# MODE=prod; on a 512 MB server read plan text in tiles (about 350 MB instead of 900 MB) and keep memory
+# tidy; the live site calls the backend directly for long requests (Cloudflare cuts proxied ones at 100 s)
+ENV MODE=prod OCR_TILE=1000 MALLOC_ARENA_MAX=2 \
+    FRONTEND_ORIGIN=https://lifespace.mokshadsankhe.me,https://lifespace-9ke.pages.dev,http://localhost:5173
 EXPOSE 8000
 # one worker: the improve loop keeps its jobs in memory
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --proxy-headers --forwarded-allow-ips='*'"]

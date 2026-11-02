@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from './api'
 import { isMeta, modelLabel } from './mapStyle'
 
-const ICON = { sliver: '🧩', unnamed: '🏷️', duplicate: '👯', entrance: '🚪', unreachable: '⛔', narrow_door: '↔️' }
+const ICON = { learned: '🧠', sliver: '🧩', unnamed: '🏷️', duplicate: '👯', entrance: '🚪', unreachable: '⛔', narrow_door: '↔️' }
 const LABEL = { rename: 'Rename', merge: 'Merge', widen_door: 'Widen door', set_entrance: 'Front door' }
 
 /** AI plan check: code finds problems, Muse Spark proposes fixes or follows what you ask, code applies
@@ -48,7 +48,7 @@ export default function PlanDoctor({ space, doors = [], onPreview }) {
   return (
     <details className="future doctor" open={!!out}>
       <summary>🩺 AI plan check <small>find and fix what was misread</small></summary>
-      <p className="meta">Code checks the map, Muse Spark looks at your plan and suggests fixes. You choose what to keep.</p>
+      <p className="meta">Code checks the map, Muse Spark looks at your plan and suggests fixes. You choose what to keep. Every fix you keep teaches LifeSpace for the next plan.</p>
       <div className="future-row">
         <input value={ask} onChange={(e) => setAsk(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && run(ask)}
           placeholder="Or ask: widen the bath door to 32 in, rename Space 3 to Kitchen" disabled={busy} aria-label="Ask for a change" />
@@ -58,6 +58,7 @@ export default function PlanDoctor({ space, doors = [], onPreview }) {
       {out && (
         <div className="future-out">
           {out.summary && <p>{out.summary}</p>}
+          {out.learned_from > 0 && <p className="meta learned">🧠 Learned from {out.learned_from} fix{out.learned_from > 1 ? 'es' : ''} people accepted on earlier plans</p>}
           {out.issues.length > 0 && (
             <ul className="flags">{out.issues.map((x, i) => <li key={i}>{ICON[x.kind] || '•'} {x.text}</li>)}</ul>
           )}

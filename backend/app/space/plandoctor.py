@@ -28,6 +28,7 @@ The picture is the original plan. The program found these rooms (id, name, size)
 Problems the program noticed:
 {issues}
 {instruction}
+{learned}
 Propose fixes using ONLY these actions:
 - {{"action": "rename", "room": id, "name": "Bedroom 2", "why": "..."}}  use the name printed on the plan if there is one
 - {{"action": "merge", "room": id, "into": id, "why": "..."}}  a small piece that is really part of another room
@@ -67,6 +68,17 @@ def check(space: dict) -> list[dict]:
                            "fix": {"action": "merge", "room": r["id"], "into": nb[0], "why": "tiny piece next to it"} if nb else None})
         if re.fullmatch(r"(space|room)\s*\d+", r["name"].strip().lower()):
             issues.append({"kind": "unnamed", "room": r["id"], "text": f"{r['name']} has no real name", "fix": None})
+    # learned from people's past fixes: a name that was renamed before gets the same fix suggested
+    from app.space import lessons
+    learned = lessons.renames(space.get("pack") or "home")
+    for r in rooms:
+        hit = learned.get(" ".join(r["name"].lower().split()))
+        if hit and hit[0].strip().lower() != r["name"].strip().lower():
+            to, times = hit
+            issues.append({"kind": "learned", "room": r["id"],
+                           "text": f'{r["name"]} was renamed to "{to}" on {times} past plan{"s" if times > 1 else ""}',
+                           "fix": {"action": "rename", "room": r["id"], "name": to,
+                                   "why": f"learned from {times} past fix{'es' if times > 1 else ''}"}})
     for n, rs in names.items():
         if len(rs) > 1:
             issues.append({"kind": "duplicate", "room": rs[1]["id"],
@@ -224,7 +236,10 @@ def ai_fixes(space: dict, image: bytes | None, issues: list[dict], instruction: 
         for i, d in enumerate(space.get("doors") or [])) if space.get("doors") else "Doorways: none found"
     iss = "\n".join(f"- {x['text']}" for x in issues) or "- none"
     ins = f"The user asks: {instruction.strip()[:300]}\nDo what they ask if the actions allow it." if instruction.strip() else ""
-    prompt = PROMPT.format(context=context, rooms=rooms, doors=doors, issues=iss, instruction=ins)
+    from app.space import lessons
+    ex = lessons.examples(space.get("pack") or "home")
+    learned = ("Fixes people made on earlier plans (use them when the same thing shows up here):\n" + "\n".join(ex)) if ex else ""
+    prompt = PROMPT.format(context=context, rooms=rooms, doors=doors, issues=iss, instruction=ins, learned=learned)
     ans = router.see(prompt, image) if image else router.ask_json(prompt)
     fixes = [f for f in (ans.get("fixes") or []) if isinstance(f, dict) and f.get("action") in ACTIONS][:12]
     return {"summary": str(ans.get("summary") or "")[:200], "fixes": fixes,

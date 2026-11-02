@@ -265,6 +265,13 @@ class DoctorAsk(BaseModel):
     fixes: list[dict] | None = None      # given: only apply these (preview), no model call
 
 
+@router.get("/lessons/stats")
+def lesson_stats(pack: str = "home"):
+    """How many fixes LifeSpace has learned from so far."""
+    from app.space import lessons
+    return lessons.stats(pack)
+
+
 @router.post("/{space_id}/doctor")
 def plan_doctor(space_id: str, ask: DoctorAsk):
     """AI plan check: code lists problems, Muse Spark proposes fixes (or follows an instruction), code
@@ -277,9 +284,19 @@ def plan_doctor(space_id: str, ask: DoctorAsk):
         raise HTTPException(404, "Space not found")
     space = _clean(json.loads(p.read_text(encoding="utf-8")))
     issues = check(space)
-    out = {"issues": issues, "summary": "", "provider": None}
+    from app.space import lessons as _lessons
+    out = {"issues": issues, "summary": "", "provider": None,
+           "learned_from": _lessons.stats(space.get("pack") or "home")["count"]}
     if ask.fixes is not None:
         fixes = ask.fixes
+        # the person chose these fixes: save them as lessons for later plans
+        from app.space import lessons
+        names = {r["id"]: r["name"] for r in space["rooms"]}
+        for f in fixes:
+            if f.get("action") == "rename" and f.get("room") in names:
+                lessons.record(space.get("pack") or "home", "rename", names[f["room"]], f.get("name", ""), f.get("why", ""), "plan check")
+            elif f.get("action") == "merge" and f.get("room") in names and f.get("into") in names:
+                lessons.record(space.get("pack") or "home", "merge", names[f["room"]], names[f["into"]], f.get("why", ""), "plan check")
     else:
         fixes = [i["fix"] for i in issues if i.get("fix") and i["kind"] != "narrow_door"]
         if ask.use_ai or ask.instruction.strip():
@@ -306,6 +323,20 @@ def save_space(space_id: str, edit: MapEdit):
     current = json.loads(p.read_text(encoding="utf-8"))
     if len(edit.grid) != current["rows"] or any(len(r) != current["cols"] for r in edit.grid):
         raise HTTPException(400, "Grid size changed; that isn't allowed")
+    # renames and item swaps made by hand are lessons too
+    from app.space import lessons
+    pack = current.get("pack") or "home"
+    old_names = {r["id"]: r["name"] for r in current.get("rooms", [])}
+    for r in edit.rooms:
+        was = old_names.get(r.get("id"))
+        if was and r.get("source") == "you":
+            lessons.record(pack, "rename", was, r.get("name", ""), "renamed by hand")
+    if edit.items is not None:
+        old_items = {it.get("id"): it for it in current.get("items", [])}
+        for it in edit.items:
+            o = old_items.get(it.get("id"))
+            if o and it.get("source") == "you" and o.get("item") != it.get("item"):
+                lessons.record(pack, "item", o.get("name") or o.get("item", ""), it.get("name") or it.get("item", ""), "changed by hand")
     current.update(grid=edit.grid, rooms=edit.rooms, entrance=edit.entrance, edited=True)
     if edit.doors is not None:
         current["doors"] = edit.doors

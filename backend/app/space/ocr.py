@@ -86,21 +86,54 @@ def split_words(token: str) -> str:
     return " ".join(out)
 
 
-def _ocr(img: np.ndarray) -> list[tuple[str, float, float, float]]:
-    eng = _get_engine()
-    if eng is None:
-        return []
+import os as _os
+
+# the text reader's memory grows with the picture: 2400 px whole needs about 900 MB. On a 512 MB
+# server set OCR_TILE=1000 to read it in tiles.
+TILE = int(_os.environ.get("OCR_TILE", "0") or 0)   # >0: read the picture in tiles this big (less memory)
+
+
+def _ocr_once(eng, img: np.ndarray, dx: int = 0, dy: int = 0, edges=(False, False, False, False)):
+    """Read one picture (or tile). edges = (left, top, right, bottom) sides that are cut tile edges:
+    a word touching a cut edge is only part of a word, and the overlapping tile reads it whole."""
     try:
         result, _ = eng(img)
     except Exception as e:
         log.warning("OCR failed: %s", e)
         return []
+    h, w = img.shape[:2]
+    m = 6
     out = []
     for box, txt, conf in result or []:
         pts = np.array(box, float)
-        out.append((str(txt), float(pts[:, 0].mean()), float(pts[:, 1].mean()), float(conf)))
+        x0, y0 = pts.min(axis=0)
+        x1, y1 = pts.max(axis=0)
+        if (edges[0] and x0 < m) or (edges[1] and y0 < m) or (edges[2] and x1 > w - m) or (edges[3] and y1 > h - m):
+            continue
+        out.append((str(txt), float(pts[:, 0].mean()) + dx, float(pts[:, 1].mean()) + dy, float(conf)))
     return out
 
+
+def _ocr(img: np.ndarray) -> list[tuple[str, float, float, float]]:
+    eng = _get_engine()
+    if eng is None:
+        return []
+    h, w = img.shape[:2]
+    if not TILE or max(h, w) <= TILE:
+        return _ocr_once(eng, img)
+    # tiles that overlap by more than a label's length, so every word is whole in at least one tile
+    step, out = TILE - 300, []
+    ys = list(range(0, max(1, h - 300), step))
+    xs = list(range(0, max(1, w - 300), step))
+    for y in ys:
+        for x in xs:
+            edges = (x > 0, y > 0, x + TILE < w, y + TILE < h)
+            out += _ocr_once(eng, img[y:y + TILE, x:x + TILE], x, y, edges)
+    return out
+
+
+# how big the plan is drawn for reading text: small labels (WC, LC) need a bigger copy
+OCR_SIDE = int(_os.environ.get("OCR_MAX_SIDE", "2400"))
 
 ENTRANCE_WORDS = ("entrance", "entry door", "main entry", "front door", "main door")
 
@@ -119,7 +152,7 @@ def read_all(gray: np.ndarray, min_conf: float = 0.6) -> list[Text]:
     """All text on the plan, upright and sideways, in the image's own pixel coordinates."""
     h0, w0 = gray.shape
     # small labels (WC, LC, CL) need more pixels than the working image has: read a 2x copy
-    up = max(1.0, 2400 / max(h0, w0))
+    up = max(1.0, OCR_SIDE / max(h0, w0))
     big = cv2.resize(gray, (int(w0 * up), int(h0 * up)), interpolation=cv2.INTER_CUBIC) if up > 1 else gray
     h, w = big.shape
     img = cv2.cvtColor(big, cv2.COLOR_GRAY2BGR)
