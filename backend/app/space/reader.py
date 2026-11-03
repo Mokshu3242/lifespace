@@ -168,6 +168,7 @@ def load_work_image(image_bytes: bytes) -> np.ndarray:
     img = img.convert("L")
     img.thumbnail((WORK_SIDE, WORK_SIDE))
     arr = np.array(img)
+    arr = _paper_only(arr)
     # a frame drawn around the whole image is not the building's wall
     m = 3
     arr[:m, :] = 255
@@ -175,6 +176,37 @@ def load_work_image(image_bytes: bytes) -> np.ndarray:
     arr[:, :m] = 255
     arr[:, -m:] = 255
     return arr
+
+
+def _paper_only(arr: np.ndarray) -> np.ndarray:
+    """A photo of a plan on paper: the table around the sheet is dark and would read as one giant
+    wall. If the image edge is mostly dark, keep the biggest bright area (the sheet) and paint the
+    rest white. Same size, so map coordinates still match the picture."""
+    h, w = arr.shape
+    edge = np.concatenate([arr[:8].ravel(), arr[-8:].ravel(), arr[:, :8].ravel(), arr[:, -8:].ravel()])
+    if np.median(edge) > 170:
+        return arr                      # a scan or a drawing on white: nothing to do
+    blur = cv2.GaussianBlur(arr, (0, 0), 3)
+    _, bright = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    bright = cv2.morphologyEx(bright, cv2.MORPH_CLOSE, np.ones((25, 25), np.uint8))   # the drawing's lines
+    n, lab, st, _ = cv2.connectedComponentsWithStats((bright > 0).astype(np.uint8), 8)
+    if n < 2:
+        return arr
+    top = 1 + int(np.argmax(st[1:, 4]))
+    if st[top, 4] < 0.2 * h * w:
+        return arr                      # no clear sheet: leave it
+    sheet = (lab == top).astype(np.uint8)
+    cnts, _ = cv2.findContours(sheet, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    filled = np.zeros_like(sheet)
+    cv2.drawContours(filled, cnts, -1, 1, -1)                                      # holes = the plan itself
+    filled = cv2.erode(filled, np.ones((9, 9), np.uint8))                          # drop the sheet's shadowed edge
+    out = arr.copy()
+    out[filled == 0] = 255
+    # even out paper shading so light pencil walls stand out from gray paper
+    bg = cv2.medianBlur(out, 31)
+    flat = cv2.divide(out, bg, scale=255)
+    flat[filled == 0] = 255
+    return flat
 
 
 def find_walls(gray: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
