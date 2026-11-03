@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Muse Spark Open on Baseten (backup in prod, open-weight bonus)
     baseten_api_key: str = ""
     baseten_base_url: str = "https://inference.baseten.co/v1"
-    baseten_model: str = "meta-models/muse-spark-open"   # check on Baseten once there is a key
+    baseten_model: str = "meta-models/muse-spark-open-1026"   # the hackathon name (the docs say muse-spark-open)
 
     # Cloudflare Workers AI (free tier, local backup)
     cloudflare_account_id: str = ""
