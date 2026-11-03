@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     meta_base_url: str = "https://api.meta.ai/v1"
     meta_chat_model: str = "muse-spark-1.3"
     meta_image_model: str = "muse-image-1.0"
+    meta_reasoning_effort: str = "low"     # minimal, low, medium, high; empty = Meta's default (slow)
 
     # Muse Spark Open on Baseten (backup in prod, open-weight bonus)
     baseten_api_key: str = ""

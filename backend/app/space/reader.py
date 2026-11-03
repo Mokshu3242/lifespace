@@ -770,11 +770,15 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     regions = mark_regions(floor, marks)
     from app.space import ocr
     all_texts = ocr.read_all(gray)          # read the plan's text once, for names and the entrance
-    labels = name_spaces(gray, marks, regions, router, context,
-                         texts=[t for t in all_texts if t.is_dims or ocr._is_name(t.text)])
-
-    # 2) entrance and overall width: one look at the whole plan
-    overview = router.see(OVERVIEW_PROMPT.format(context=context, n=len(marks)), draw_marks(gray, marks))
+    # 2) entrance and overall width: one look at the whole plan. It doesn't need the names, so ask it
+    # at the same time as the naming below: two Meta waits at once instead of one after the other
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        ask_overview = pool.submit(router.see, OVERVIEW_PROMPT.format(context=context, n=len(marks)),
+                                   draw_marks(gray, marks))
+        labels = name_spaces(gray, marks, regions, router, context,
+                             texts=[t for t in all_texts if t.is_dims or ocr._is_name(t.text)])
+        overview = ask_overview.result()
     try:
         ent = int(overview.get("entrance")) - 1
         entrance_idx = ent if 0 <= ent < len(marks) else None

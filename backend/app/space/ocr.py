@@ -133,6 +133,8 @@ def _ocr(img: np.ndarray) -> list[tuple[str, float, float, float]]:
 
 
 # how big the plan is drawn for reading text: small labels (WC, LC) need a bigger copy
+SIDEWAYS = _os.environ.get("OCR_SIDEWAYS", "auto")
+SIDEWAYS_ENOUGH = 8
 OCR_SIDE = int(_os.environ.get("OCR_MAX_SIDE", "2400"))
 
 ENTRANCE_WORDS = ("entrance", "entry door", "main entry", "front door", "main door")
@@ -157,9 +159,16 @@ def read_all(gray: np.ndarray, min_conf: float = 0.6) -> list[Text]:
     h, w = big.shape
     img = cv2.cvtColor(big, cv2.COLOR_GRAY2BGR)
     found = _ocr(img)
+    # sideways labels cost two more full passes (the slowest step on a small server). Skip them when the
+    # upright pass already found the plan's names and sizes; OCR_SIDEWAYS=always forces them.
+    good = [t for t in found if t[3] >= min_conf]
+    if SIDEWAYS != "always" and len(good) >= SIDEWAYS_ENOUGH and sum(bool(DIMS_RE.search(t[0])) for t in good) >= 3:
+        rotations = ()
+    else:
+        rotations = ((cv2.ROTATE_90_CLOCKWISE, lambda x, y: (y, h - 1 - x)),
+                     (cv2.ROTATE_90_COUNTERCLOCKWISE, lambda x, y: (w - 1 - y, x)))
     # sideways labels (KITCHEN, CL written vertically): read the image turned both ways
-    for rot, back in ((cv2.ROTATE_90_CLOCKWISE, lambda x, y: (y, h - 1 - x)),
-                      (cv2.ROTATE_90_COUNTERCLOCKWISE, lambda x, y: (w - 1 - y, x))):
+    for rot, back in rotations:
         for txt, x, y, c in _ocr(cv2.rotate(img, rot)):
             bx, by = back(x, y)
             found.append((txt, bx, by, c))

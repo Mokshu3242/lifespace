@@ -19,7 +19,11 @@ class ProviderError(Exception):
 class OpenAICompatProvider:
     def __init__(self, name: str, base_url: str, api_key: str, chat_model: str,
                  vision_model: str | None, timeout: float, json_format: bool = True,
-                 max_tokens: int | None = None, send_temperature: bool = True):
+                 max_tokens: int | None = None, send_temperature: bool = True,
+                 reasoning_effort: str = ""):
+        # Muse Spark reasons before it answers. Left unset, it picks its own (long) level. Our calls are
+        # direct tasks (read labels, return JSON), so "low" cuts the wait a lot. Meta docs: /docs/reasoning
+        self.reasoning_effort = reasoning_effort
         # Muse Spark is tuned for its default temperature; Meta's docs say to leave it unset
         self.send_temperature = send_temperature
         self.max_tokens = max_tokens     # Groq's free tier rejects requests that could exceed 1000 output tokens
@@ -46,6 +50,8 @@ class OpenAICompatProvider:
             body["temperature"] = temperature
         if self.max_tokens:
             body["max_tokens"] = self.max_tokens
+        if self.reasoning_effort:
+            body["reasoning_effort"] = self.reasoning_effort
         if json_mode and self.json_format:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
@@ -170,7 +176,7 @@ def build_chat_providers(s: Settings) -> dict[str, object]:
     return {
         "meta": OpenAICompatProvider("meta", s.meta_base_url, s.meta_api_key,
                                      s.meta_chat_model, s.meta_chat_model, s.request_timeout,
-                                     send_temperature=False),
+                                     send_temperature=False, reasoning_effort=s.meta_reasoning_effort),
         # Baseten's Muse Spark Open has no JSON mode (per Baseten's docs); the prompt asks for JSON
         "baseten": OpenAICompatProvider("baseten", s.baseten_base_url, s.baseten_api_key,
                                         s.baseten_model, s.baseten_model, s.request_timeout,
