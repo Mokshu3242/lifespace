@@ -67,8 +67,8 @@ export const api = {
     body.append('file', file)
     return fetch(`${API}/api/spaces/${id}/designs/${designId}/restyle?room_id=${roomId}`, { method: 'POST', body }).then(handle)
   },
-  doctor: (id, body) =>
-    fetch(`${API}/api/spaces/${id}/doctor`, {
+  doctor: (id, body, step = false) =>
+    fetch(`${API}/api/spaces/${id}/doctor${step ? '?apply=1' : ''}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     }).then(handle),
   addVisitor: (id, kind) =>

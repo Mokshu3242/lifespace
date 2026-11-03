@@ -544,3 +544,10 @@ textarea { max-width: 100%; }
   #shop-print { position: absolute; inset: 0 auto auto 0; width: 100%; border: none; background: #fff; color: #000; }
   #shop-print .shop-actions { display: none; }
 }
+
+/* plan check: the fix being put on the map right now */
+.fix-list li.doing { background: color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 8px; animation: fixpulse 0.7s ease-in-out infinite alternate; }
+.fix-list .pen { margin-right: 4px; display: inline-block; animation: penwrite 0.35s ease-in-out infinite alternate; }
+@keyframes fixpulse { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); } to { box-shadow: 0 0 0 4px transparent; } }
+@keyframes penwrite { from { transform: translate(0, 0) rotate(-8deg); } to { transform: translate(3px, 1px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .fix-list li.doing, .fix-list .pen { animation: none; } }

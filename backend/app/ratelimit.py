@@ -29,6 +29,8 @@ async def limit(req: Request, call_next):
     kind = "read" if path in READS else "action" if any(a in path for a in ACTIONS) else None
     if kind is None:
         return await call_next(req)
+    if path.endswith("/doctor") and req.query_params.get("apply") == "1":
+        return await call_next(req)          # putting chosen fixes on the map: code only, no model call
     day = int(time.time() // 86400)
     key = (_who(req), kind, day)
     cap = s.rate_reads_per_day if kind == "read" else s.rate_actions_per_day

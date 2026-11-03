@@ -276,7 +276,7 @@ def lesson_stats(pack: str = "home"):
 
 
 @router.post("/{space_id}/doctor")
-def plan_doctor(space_id: str, ask: DoctorAsk):
+def plan_doctor(space_id: str, ask: DoctorAsk, apply_only: bool = Query(False, alias="apply")):
     """AI plan check: code lists problems, Muse Spark proposes fixes (or follows an instruction), code
     applies them to a copy. Returns the preview; nothing is saved until the editor saves the map."""
     from app.space.plandoctor import apply, ai_fixes, check
@@ -286,16 +286,19 @@ def plan_doctor(space_id: str, ask: DoctorAsk):
     if not p.exists():
         raise HTTPException(404, "Space not found")
     space = _clean(json.loads(p.read_text(encoding="utf-8")))
+    if apply_only and ask.fixes is None:
+        raise HTTPException(400, "apply=1 needs the fixes to put on the map")
     issues = check(space)
     from app.space import lessons as _lessons
     out = {"issues": issues, "summary": "", "provider": None,
            "learned_from": _lessons.stats(space.get("pack") or "home")["count"]}
     if ask.fixes is not None:
         fixes = ask.fixes
-        # the person chose these fixes: save them as lessons for later plans
+        # the person chose these fixes: save them as lessons for later plans (once: the step-by-step
+        # replay sends apply=1 for the steps before the last)
         from app.space import lessons
         names = {r["id"]: r["name"] for r in space["rooms"]}
-        for f in fixes:
+        for f in ([] if apply_only else fixes):
             if f.get("action") == "rename" and f.get("room") in names:
                 lessons.record(space.get("pack") or "home", "rename", names[f["room"]], f.get("name", ""), f.get("why", ""), "plan check")
             elif f.get("action") == "merge" and f.get("room") in names and f.get("into") in names:

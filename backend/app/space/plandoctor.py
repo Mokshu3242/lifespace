@@ -7,6 +7,9 @@ Fixes are a small, safe vocabulary:
   merge       {room, into}                 a piece of a room joins the room it belongs to
   widen_door  {door, width_in}             a renovation what-if: open the wall at a doorway to this width
   set_entrance{room}                       the front door opens into this room
+  add_item    {room, item, at}             furniture drawn on the plan but missing from the map: a catalog item,
+                                           placed by code near "at" (percent of the picture) where it fits,
+                                           out of doorways, without cutting anyone off
   split       {room, from, to, name}       two rooms read as one: cut along a line (percent of the picture)
                                            and name the new piece. Code snaps the line, checks it really
                                            splits the room, and adds no wall, so walking is unchanged.
@@ -22,7 +25,7 @@ import numpy as np
 
 from app.space.simulate import Floor, _astar, _nearest
 
-ACTIONS = ("rename", "merge", "widen_door", "set_entrance", "split")
+ACTIONS = ("rename", "merge", "widen_door", "set_entrance", "split", "add_item")
 
 PROMPT = """You check a floor plan that a program has read. {context}
 The picture is the original plan with a grid: numbers on the edges are percent of the width (top) and
@@ -42,6 +45,10 @@ Propose fixes using ONLY these actions:
   two rooms (two printed names) that the program read as one room: a line in percent of the picture, along
   where the two rooms meet, from one wall to the other. "name" is the new piece, on the side away from the
   room's current name.
+- {{"action": "add_item", "room": id, "item": "catalog id", "at": [x, y], "why": "..."}}  furniture or a fixture that is
+  DRAWN on the plan (bed, sofa, table, tub, toilet, stove...) but missing from the map's items. "at" is where it is
+  drawn, in percent of the picture. Pick the item id from this list: {catalog}
+Items already on the map: {items}
 Use ids and door indexes from the lists. At most 12 fixes. Plain short reasons.
 Return JSON: {{"summary": "one sentence", "fixes": [...]}}"""
 
@@ -170,6 +177,8 @@ def apply(space: dict, fixes: list[dict]) -> tuple[dict, list[dict]]:
                 else:
                     j = 0
                 s["entrance"] = [int(xs[j]), int(ys[j])]
+            elif a == "add_item":
+                _add_item(g, s, f)
             elif a == "split":
                 rid = int(f["room"])
                 if rid not in ids:
@@ -252,6 +261,54 @@ def _split(g: np.ndarray, s: dict, rid: int, a, b, name: str) -> int:
     _room_stats(g, nr, s["cell_in"])
     _room_stats(g, room, s["cell_in"])
     return new_id
+
+
+def _add_item(g: np.ndarray, s: dict, f: dict) -> None:
+    """Put one catalog item on the map near where the plan draws it. Code checks: a real catalog item that
+    belongs in that kind of room, a spot where it fits out of doorways, and nobody cut off from a room."""
+    from app import catalog
+    from app.space.redesign import (DOOR_CLEAR_IN, PATH_IN, doorway_zone, find_spot, occupancy,
+                                    reachable_rooms)
+    pack = s.get("pack") or "home"
+    rid = int(f["room"])
+    room = next((r for r in s["rooms"] if r["id"] == rid), None)
+    if room is None:
+        raise ValueError("unknown room")
+    key = str(f.get("item") or "").strip().lower()
+    c = catalog.get(pack, key) or next((x for x in catalog.load(pack) if x.name.lower() == key), None)
+    if c is None:
+        raise ValueError(f'"{f.get("item")}" is not in the catalog')
+    if not c.fits_room(room["name"].lower()) and not c.fits_room(room.get("kind", "")):
+        raise ValueError(f"a {c.name.lower()} doesn't belong in {room['name']}")
+    rows, cols = g.shape
+    at = f.get("at") or [None, None]
+    near = None
+    if at[0] is not None:
+        near = (float(at[0]) / 100 * cols, float(at[1]) / 100 * rows)
+    items = s.setdefault("items", [])
+    free = occupancy(g, items, pack)
+    zone = doorway_zone(g, max(1, round(DOOR_CLEAR_IN / s["cell_in"] / 2)))
+    spot = None
+    if near is not None:              # first look close to where it's drawn (within about 5 ft)
+        reach = 60 / s["cell_in"]
+        yy, xx = np.mgrid[0:rows, 0:cols]
+        close = np.where((g == rid) & (((xx - near[0]) ** 2 + (yy - near[1]) ** 2) <= reach ** 2), g, -3)
+        spot = find_spot(close, free, rid, c, s["cell_in"], zone, near)
+    spot = spot or find_spot(g, free, rid, c, s["cell_in"], zone, near)
+    if spot is None:
+        raise ValueError(f"no space for a {c.name.lower()} in {room['name']}")
+    new = {"id": max([it.get("id", 0) for it in items] + [-1]) + 1, "item": c.id, "name": c.name, **spot,
+           "room": rid, "chairs": 0, "price_usd": c.price_usd, "source": "ai fix", "note": f.get("why", ""),
+           "unsure": False}
+    ent = tuple(s["entrance"]) if s.get("entrance") else None
+    path = max(2, round(PATH_IN / s["cell_in"]))
+    before = reachable_rooms(g, free, ent, path)
+    after = reachable_rooms(g, occupancy(g, items + [new], pack), ent, path)
+    if not before <= after:
+        cut = ", ".join(r["name"] for r in s["rooms"] if r["id"] in before - after)
+        raise ValueError(f"it would block the way into {cut}")
+    items.append(new)
+    f["placed"] = {k: new[k] for k in ("x", "y", "w", "d")}
 
 
 def _widen(g: np.ndarray, d: dict, width_in: float, cell_in: float) -> None:
@@ -356,7 +413,12 @@ def ai_fixes(space: dict, image: bytes | None, issues: list[dict], instruction: 
     from app.space import lessons
     ex = lessons.examples(space.get("pack") or "home")
     learned = ("Fixes people made on earlier plans (use them when the same thing shows up here):\n" + "\n".join(ex)) if ex else ""
-    prompt = PROMPT.format(context=context, rooms=rooms, doors=doors, issues=iss, instruction=ins, learned=learned)
+    from app import catalog as _cat
+    pack = space.get("pack") or "home"
+    cat = ", ".join(f"{c.id} ({c.name})" for c in _cat.load(pack) if c.category not in ("safety", "access", "energy", "health"))
+    have = ", ".join(sorted({f"{it.get('name')} in {names.get(it.get('room'), '?')}" for it in space.get("items") or []})) or "none"
+    prompt = PROMPT.format(context=context, rooms=rooms, doors=doors, issues=iss, instruction=ins, learned=learned,
+                           catalog=cat, items=have)
     ans = router.see(prompt, grid_overlay(image)) if image else router.ask_json(prompt)
     fixes = [f for f in (ans.get("fixes") or []) if isinstance(f, dict) and f.get("action") in ACTIONS][:12]
     return {"summary": str(ans.get("summary") or "")[:200], "fixes": fixes,
