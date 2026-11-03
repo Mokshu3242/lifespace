@@ -1,5 +1,7 @@
 """Streets API: upload a street photo, get what's there and a scorecard, redesign it, see it drawn."""
 import json
+
+from starlette.concurrency import run_in_threadpool
 import re
 import uuid
 from pathlib import Path
@@ -35,7 +37,7 @@ async def create_street(file: UploadFile = File(...)):
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(415, "Upload a PNG or JPG photo")
     try:
-        read = street.read_street(data, get_router())
+        read = await run_in_threadpool(street.read_street, data, get_router())   # off the loop: keeps /api/health answering
     except ValueError as e:
         raise HTTPException(400, str(e))
     except AllProvidersFailed as e:

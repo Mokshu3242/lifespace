@@ -1,5 +1,7 @@
 """Spaces API: upload a plan, get a grid map, save hand fixes."""
 import json
+
+from starlette.concurrency import run_in_threadpool
 import re
 import uuid
 from pathlib import Path
@@ -123,7 +125,8 @@ async def create_space(file: UploadFile = File(...),
         router_ = get_router()
         router_.fresh = fresh
         try:
-            smap = read_floor_plan(data, router_, pack, describe)
+            # on a side thread: a read takes minutes, and blocking the loop starves the health check
+            smap = await run_in_threadpool(read_floor_plan, data, router_, pack, describe)
         finally:
             router_.fresh = False
     except AllProvidersFailed as e:
@@ -589,7 +592,7 @@ async def restyle_photo(space_id: str, design_id: int, room_id: int = Query(...)
     prompt = restyle_prompt(space, design, room_id)
     router_ = get_router()
     try:
-        png = router_.render(prompt, data)
+        png = await run_in_threadpool(router_.render, prompt, data)
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Image models are unavailable: {e}")
     stem = f"{int(design_id)}_photo{int(room_id)}"
