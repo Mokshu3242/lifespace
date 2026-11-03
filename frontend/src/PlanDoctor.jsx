@@ -3,7 +3,7 @@ import { api } from './api'
 import { isMeta, modelLabel } from './mapStyle'
 
 const ICON = { learned: '🧠', sliver: '🧩', unnamed: '🏷️', duplicate: '👯', entrance: '🚪', unreachable: '⛔', narrow_door: '↔️' }
-const LABEL = { rename: 'Rename', merge: 'Merge', widen_door: 'Widen door', set_entrance: 'Front door' }
+const LABEL = { rename: 'Rename', merge: 'Merge', widen_door: 'Widen door', set_entrance: 'Front door', split: 'Split' }
 
 /** AI plan check: code finds problems, Muse Spark proposes fixes or follows what you ask, code applies
  *  them to the map in the editor. Nothing is saved until you press Save map. */
@@ -43,7 +43,8 @@ export default function PlanDoctor({ space, doors = [], onPreview }) {
   const describe = (f) => f.action === 'rename' ? `${names[f.room] ?? `room ${f.room}`} → “${f.name}”`
     : f.action === 'merge' ? `${names[f.room] ?? f.room} into ${names[f.into] ?? f.into}`
     : f.action === 'widen_door' ? `${doorName(f.door)} door to ${f.width_in} in (renovation what-if)`
-    : f.action === 'set_entrance' ? `opens into ${names[f.room] ?? f.room}` : f.action
+    : f.action === 'set_entrance' ? `opens into ${names[f.room] ?? f.room}`
+    : f.action === 'split' ? `${names[f.room] ?? f.room} in two: new room “${f.name}”` : f.action
 
   return (
     <details className="future doctor" open={!!out}>
@@ -51,7 +52,7 @@ export default function PlanDoctor({ space, doors = [], onPreview }) {
       <p className="meta">Code checks the map, Muse Spark looks at your plan and suggests fixes. You choose what to keep. Every fix you keep teaches LifeSpace for the next plan.</p>
       <div className="future-row">
         <input value={ask} onChange={(e) => setAsk(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && run(ask)}
-          placeholder="Or ask: widen the bath door to 32 in, rename Space 3 to Kitchen" disabled={busy} aria-label="Ask for a change" />
+          placeholder="Or ask: split Dining and Hallway, widen the bath door to 32 in" disabled={busy} aria-label="Ask for a change" />
       </div>
       <button className="tool" onClick={() => run(ask)} disabled={busy}>{busy ? 'Checking…' : ask.trim() ? 'Make this change' : 'Check my plan'}</button>
       {error && <p className="bad">{error}</p>}

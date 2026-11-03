@@ -7,6 +7,9 @@ Fixes are a small, safe vocabulary:
   merge       {room, into}                 a piece of a room joins the room it belongs to
   widen_door  {door, width_in}             a renovation what-if: open the wall at a doorway to this width
   set_entrance{room}                       the front door opens into this room
+  split       {room, from, to, name}       two rooms read as one: cut along a line (percent of the picture)
+                                           and name the new piece. Code snaps the line, checks it really
+                                           splits the room, and adds no wall, so walking is unchanged.
 """
 from __future__ import annotations
 
@@ -19,10 +22,11 @@ import numpy as np
 
 from app.space.simulate import Floor, _astar, _nearest
 
-ACTIONS = ("rename", "merge", "widen_door", "set_entrance")
+ACTIONS = ("rename", "merge", "widen_door", "set_entrance", "split")
 
 PROMPT = """You check a floor plan that a program has read. {context}
-The picture is the original plan. The program found these rooms (id, name, size) and doorways:
+The picture is the original plan with a grid: numbers on the edges are percent of the width (top) and
+height (left). The program found these rooms (id, name, size, box as left-top-right-bottom percent) and doorways:
 {rooms}
 {doors}
 Problems the program noticed:
@@ -34,6 +38,10 @@ Propose fixes using ONLY these actions:
 - {{"action": "merge", "room": id, "into": id, "why": "..."}}  a small piece that is really part of another room
 - {{"action": "widen_door", "door": index, "width_in": 32, "why": "..."}}  only when asked, or a walker or wheelchair needs it
 - {{"action": "set_entrance", "room": id, "why": "..."}}
+- {{"action": "split", "room": id, "from": [x, y], "to": [x, y], "name": "Hallway", "why": "..."}}  when the plan shows
+  two rooms (two printed names) that the program read as one room: a line in percent of the picture, along
+  where the two rooms meet, from one wall to the other. "name" is the new piece, on the side away from the
+  room's current name.
 Use ids and door indexes from the lists. At most 12 fixes. Plain short reasons.
 Return JSON: {{"summary": "one sentence", "fixes": [...]}}"""
 
@@ -162,6 +170,15 @@ def apply(space: dict, fixes: list[dict]) -> tuple[dict, list[dict]]:
                 else:
                     j = 0
                 s["entrance"] = [int(xs[j]), int(ys[j])]
+            elif a == "split":
+                rid = int(f["room"])
+                if rid not in ids:
+                    raise ValueError("unknown room")
+                name = str(f.get("name") or "").strip()[:40]
+                if not name:
+                    raise ValueError("the new room needs a name")
+                new = _split(g, s, rid, f["from"], f["to"], name)
+                ids.add(new)
             else:
                 raise ValueError(f"unknown action {a}")
             log.append({"fix": f, "ok": True, "note": f.get("why", "")})
@@ -169,6 +186,72 @@ def apply(space: dict, fixes: list[dict]) -> tuple[dict, list[dict]]:
             log.append({"fix": f, "ok": False, "note": str(e)})
     s["grid"] = g.tolist()
     return s, log
+
+
+def _line_cells(x0: int, y0: int, x1: int, y1: int) -> list[tuple[int, int]]:
+    n = max(abs(x1 - x0), abs(y1 - y0), 1)
+    return [(round(x0 + (x1 - x0) * t / n), round(y0 + (y1 - y0) * t / n)) for t in range(n + 1)]
+
+
+def _room_stats(g: np.ndarray, r: dict, cell_in: float) -> None:
+    ys, xs = np.nonzero(g == r["id"])
+    r["cells"] = int(len(ys))
+    r["area_sqft"] = round(len(ys) * (cell_in / 12) ** 2, 1)
+    if len(ys):
+        r["bbox_cells"] = [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
+        r["center_cells"] = [round(float(xs.mean()), 1), round(float(ys.mean()), 1)]
+
+
+def _split(g: np.ndarray, s: dict, rid: int, a, b, name: str) -> int:
+    """Cut room rid along a line (percent of the picture) into two rooms. Code checks it: the line is snapped
+    straight, stretched to the room's walls, and must leave two real pieces. No wall is added."""
+    from app.space.reader import kind_of
+    rows, cols = g.shape
+    x0, y0, x1, y1 = (float(v) for v in (*a, *b))
+    if not all(0 <= v <= 100 for v in (x0, y0, x1, y1)):
+        raise ValueError("the line is off the picture")
+    c0 = (int(x0 / 100 * cols), int(y0 / 100 * rows))
+    c1 = (int(x1 / 100 * cols), int(y1 / 100 * rows))
+    dx, dy = c1[0] - c0[0], c1[1] - c0[1]
+    if abs(dx) <= 0.25 * abs(dy):                 # walls are straight: snap a nearly upright line
+        mx = (c0[0] + c1[0]) // 2
+        c0, c1 = (mx, c0[1]), (mx, c1[1])
+    elif abs(dy) <= 0.25 * abs(dx):
+        my = (c0[1] + c1[1]) // 2
+        c0, c1 = (c0[0], my), (c1[0], my)
+    cut = set(_line_cells(*c0, *c1))
+    # stretch both ends through the room until they meet something that isn't this room
+    for (sx, sy), (ex, ey) in ((c0, c1), (c1, c0)):
+        n = max(abs(ex - sx), abs(ey - sy), 1)
+        ux, uy = (sx - ex) / n, (sy - ey) / n
+        for k in range(1, max(rows, cols)):
+            x, y = round(sx + ux * k), round(sy + uy * k)
+            if not (0 <= x < cols and 0 <= y < rows) or g[y, x] != rid:
+                break
+            cut.add((x, y))
+    mask = (g == rid).astype(np.uint8)
+    for x, y in cut:
+        if 0 <= x < cols and 0 <= y < rows:
+            mask[y, x] = 0
+    n, lab, st, _ = cv2.connectedComponentsWithStats(mask, connectivity=4)
+    sqft = (s["cell_in"] / 12) ** 2
+    pieces = sorted(((int(st[i, 4]), i) for i in range(1, n)), reverse=True)
+    pieces = [(c, i) for c, i in pieces if c * sqft >= 8]
+    if len(pieces) < 2:
+        raise ValueError("that line doesn't split the room into two real rooms")
+    room = next(r for r in s["rooms"] if r["id"] == rid)
+    # the old name stays with the piece that holds its label spot (or the bigger piece)
+    cx, cy = (int(v) for v in (room.get("center_cells") or [-1, -1]))
+    keep = lab[cy, cx] if 0 <= cy < rows and 0 <= cx < cols and lab[cy, cx] > 0 else pieces[0][1]
+    other = next(i for c, i in pieces if i != keep)
+    new_id = max(r["id"] for r in s["rooms"]) + 1
+    g[lab == other] = new_id                        # the cut line itself stays with the old room
+    nr = {"id": new_id, "name": name, "kind": kind_of(name), "source": "ai fix", "unsure": False,
+          "note": "split off by the plan check", "dims_text": None, "dims_ft": None}
+    s["rooms"].append(nr)
+    _room_stats(g, nr, s["cell_in"])
+    _room_stats(g, room, s["cell_in"])
+    return new_id
 
 
 def _widen(g: np.ndarray, d: dict, width_in: float, cell_in: float) -> None:
@@ -227,9 +310,43 @@ def _widen(g: np.ndarray, d: dict, width_in: float, cell_in: float) -> None:
     d["widened"] = True
 
 
+def _pct_box(r: dict, cols: int, rows: int) -> str:
+    b = r.get("bbox_cells") or [0, 0, 0, 0]
+    return f"box {100 * b[0] / cols:.0f}-{100 * b[1] / rows:.0f}-{100 * b[2] / cols:.0f}-{100 * b[3] / rows:.0f}"
+
+
+def grid_overlay(image: bytes) -> bytes:
+    """The plan with a light percent grid and numbers, so the model can point at places."""
+    img = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
+    if img is None:
+        return image
+    h, w = img.shape[:2]
+    scale = 1400 / max(h, w)
+    if scale < 1:
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        h, w = img.shape[:2]
+    over = img.copy()
+    for k in range(0, 101, 5):
+        x, y = min(w - 1, int(w * k / 100)), min(h - 1, int(h * k / 100))
+        col = (255, 120, 0) if k % 10 == 0 else (255, 200, 150)
+        cv2.line(over, (x, 0), (x, h), col, 1)
+        cv2.line(over, (0, y), (w, y), col, 1)
+    img = cv2.addWeighted(over, 0.45, img, 0.55, 0)
+    for k in range(10, 100, 10):
+        x, y = int(w * k / 100), int(h * k / 100)
+        for pos in ((x - 9, 14), (x - 9, h - 4)):
+            cv2.putText(img, str(k), pos, cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 60, 0), 1, cv2.LINE_AA)
+        for pos in ((2, y + 5), (w - 22, y + 5)):
+            cv2.putText(img, str(k), pos, cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 60, 0), 1, cv2.LINE_AA)
+    ok, png = cv2.imencode(".png", img)
+    return png.tobytes() if ok else image
+
+
 def ai_fixes(space: dict, image: bytes | None, issues: list[dict], instruction: str, router, context: str = "") -> dict:
     g = np.array(space["grid"])
-    rooms = "\n".join(f"- {r['id']}: {r['name']} ({_sqft(g, r['id'], space['cell_in']):.0f} sq ft)" for r in space["rooms"])
+    rows_, cols_ = g.shape
+    rooms = "\n".join(f"- {r['id']}: {r['name']} ({_sqft(g, r['id'], space['cell_in']):.0f} sq ft, {_pct_box(r, cols_, rows_)})"
+                      for r in space["rooms"])
     names = {r["id"]: r["name"] for r in space["rooms"]}
     doors = "Doorways:\n" + "\n".join(
         f"- door {i}: {' to '.join(names.get(x, '?') for x in d.get('rooms', []))}{' (front door)' if d.get('outside') else ''}, {d.get('width_in')} in"
@@ -240,7 +357,7 @@ def ai_fixes(space: dict, image: bytes | None, issues: list[dict], instruction: 
     ex = lessons.examples(space.get("pack") or "home")
     learned = ("Fixes people made on earlier plans (use them when the same thing shows up here):\n" + "\n".join(ex)) if ex else ""
     prompt = PROMPT.format(context=context, rooms=rooms, doors=doors, issues=iss, instruction=ins, learned=learned)
-    ans = router.see(prompt, image) if image else router.ask_json(prompt)
+    ans = router.see(prompt, grid_overlay(image)) if image else router.ask_json(prompt)
     fixes = [f for f in (ans.get("fixes") or []) if isinstance(f, dict) and f.get("action") in ACTIONS][:12]
     return {"summary": str(ans.get("summary") or "")[:200], "fixes": fixes,
             "provider": getattr(router, "last_provider", None)}
