@@ -71,6 +71,11 @@ export default function PlanEditor({ space, onReset }) {
     api.catalog(space.pack || 'home').then((c) => setCatalog(c.items)).catch(() => {})
   }, [space.pack])
 
+  // load the latest redesign right away, so People compares against it even if Redesign was never opened
+  useEffect(() => {
+    api.designs(space.id).then((v) => { if (v.length) setDesign((d) => d ?? v[v.length - 1]) }).catch(() => {})
+  }, [space.id])
+
   // the people's day as one long path each, for playback
   const walks = useMemo(() => {
     if (!sim) return []
@@ -130,6 +135,11 @@ export default function PlanEditor({ space, onReset }) {
     for (const r of rooms) out[r.id] = areaSqft(grid, r.id, space.cell_in)
     return out
   }, [grid, rooms, space.cell_in])
+
+  // warnings from the first read: drop "no name yet" once every room has a real name
+  const unnamed = rooms.some((r) => /^Space \d+$/.test(r.name))
+  const warnings = (space.warnings || []).filter((w) => !/no name yet/.test(w) || unnamed)
+  const keptChanges = design ? (design.changes || []).filter((c) => !c.dropped).length : 0
 
   function paint(r, c, isFirst) {
     if (tool === 'select') {
@@ -254,12 +264,12 @@ export default function PlanEditor({ space, onReset }) {
         <div className="rail-group">
           <span className="rail-title">This plan</span>
         <div className="chips rail-chips">
-          <span className="chip-stat"><b>{rooms.length}</b> rooms</span>
+          <span className="chip-stat"><b>{rooms.length}</b> {rooms.length === 1 ? 'room' : 'rooms'}</span>
           <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
-          <span className="chip-stat"><b>{doors.length}</b> doorways</span>
+          <span className="chip-stat"><b>{doors.length}</b> {doors.length === 1 ? 'doorway' : 'doorways'}</span>
           {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
-          <span className="chip-stat"><b>{items.length}</b> items found</span>
-          {design && <span className="chip-stat good-chip">Design {design.id}: <b>{design.changes?.length ?? 0}</b> changes</span>}
+          <span className="chip-stat"><b>{items.length}</b> {items.length === 1 ? 'item' : 'items'} found</span>
+          {design && <span className="chip-stat good-chip">Design {design.id}: <b>{keptChanges}</b> {keptChanges === 1 ? 'change' : 'changes'}</span>}
           {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
         </div>
           <p className="meta">
@@ -421,9 +431,9 @@ export default function PlanEditor({ space, onReset }) {
           const next = STEP_TABS[i + 1]
           return next && <button className="next-step" onClick={() => setTab(next.id)}>Next: {next.icon} {next.label} →<small>{next.help}</small></button>
         })()}
-        {tab === 'rooms' && space.warnings?.length > 0 && (
+        {tab === 'rooms' && warnings.length > 0 && (
           <div className="warn">
-            {space.warnings.map((w) => <p key={w}>{w}</p>)}
+            {warnings.map((w) => <p key={w}>{w}</p>)}
           </div>
         )}
         <div className="side-actions">

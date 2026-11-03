@@ -37,9 +37,9 @@ const STEPS = [
 ]
 
 const MODELS = [
-  { name: 'Muse Spark 1.3', does: 'reads the plan, names rooms and furniture, plans the redesign, writes each person’s voice' },
-  { name: 'Muse Image', does: 'draws the redesigned room from the real items in the design' },
-  { name: 'SAM 3.1', does: 'tested for finding furniture on plans (great on shaded plans)' },
+  { name: 'Muse Spark 1.3', does: 'reads the plan, names rooms, runs the AI plan check, plans the redesign, writes each person’s voice' },
+  { name: 'Muse Image', does: 'draws the redesigned room, the comic of a day, and the redesign inside your own room photo' },
+  { name: 'SAM 3.1', does: 'finds furniture and doors on plans, and lights, benches and bins on street photos' },
   { name: 'Muse Spark Open', does: 'backup on Baseten, same pipeline' },
 ]
 
@@ -125,11 +125,12 @@ export default function App() {
   return (
     <div className="site">
       <header className="nav">
-        <a className="brand" href="#/">
+        <a className="brand" href="#/" onClick={reset}>
           <span className="logo" aria-hidden>◫</span> LifeSpace
         </a>
         <nav>
-          <a href="#/" className={page === 'app' ? 'on' : ''}>{space ? 'Your space' : 'Start'}</a>
+          {/* from a street, Start goes back to the start page; from a plan it stays on "Your space" */}
+          <a href="#/" onClick={() => { if (street && !space) reset() }} className={page === 'app' ? 'on' : ''}>{space ? 'Your space' : 'Start'}</a>
           <a href="#/compare" className={page === 'compare' ? 'on' : ''}>Compare homes</a>
           <a href="#/how" className={page === 'how' ? 'on' : ''}>How it works</a>
         </nav>
@@ -203,7 +204,7 @@ export default function App() {
               <section className="samples">
                 <span className="meta">No plan handy? Open one that's ready (instant, already redesigned):</span>
                 {samples.map((sm) => (
-                  <button key={sm.kind} className="sample" onClick={() => trySample(sm)}>
+                  <button key={`${sm.kind}:${sm.id}`} className="sample" onClick={() => trySample(sm)}>
                     <img src={sm.thumb} alt="" loading="lazy" />
                     <span>{sm.icon} {sm.label}</span>
                   </button>

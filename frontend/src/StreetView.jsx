@@ -12,7 +12,8 @@ const SCORES = [['walk', 'Walk and wheel'], ['cross', 'Crossing'], ['rest', 'Res
 
 /** A street photo: what Meta SAM 3.1 found, what Muse Spark read, a scorecard by code, a redesign,
  *  and Muse Image drawing the fixes onto the real photo. */
-const plural = (w, n) => (n === 1 ? w : /(ch|sh|s|x)$/.test(w) ? `${w}es` : `${w}s`)
+// words already plural ("steps") stay as they are; "bench" → "benches", "light" → "lights"
+const plural = (w, n) => (n === 1 || /[^s]s$/.test(w) ? w : /(ch|sh|s|x)$/.test(w) ? `${w}es` : `${w}s`)
 
 export default function StreetView({ street: initial, onReset }) {
   const [street, setStreet] = useState(initial)
@@ -87,14 +88,14 @@ export default function StreetView({ street: initial, onReset }) {
           )}
         </div>
         <p className="meta">
-          {street.things.length ? <>Found by <strong>Meta SAM 3.1</strong>: {Object.entries(counts).map(([k, n]) => `${n} ${plural((KIND[k]?.[0] || k).toLowerCase(), n)}`).join(', ')}. </> : 'SAM 3.1 runs on Meta models only (prod). '}
+          {street.things.length ? <>Outlined by <strong>Meta SAM 3.1</strong>: {Object.entries(counts).map(([k, n]) => `${n} ${plural((KIND[k]?.[0] || k).toLowerCase(), n)}`).join(', ')}. </> : 'SAM 3.1 runs on Meta models only (prod). '}
           {sc.summary && <>Read by <strong>Muse Spark</strong>: {sc.summary}</>}
         </p>
       </div>
 
       <aside className="panel street-side">
         <h2>Street check</h2>
-        <p className="meta">Surface: {sc.surface}{sc.rail_tracks ? ' with rail tracks' : ''} · sidewalk {sc.sidewalk_width} · shade {sc.shade} · {sc.trees} trees</p>
+        <p className="meta">Surface: {sc.surface}{sc.rail_tracks ? ' with rail tracks' : ''} · sidewalk {sc.sidewalk_width} · shade {sc.shade} · Muse Spark counts {sc.trees} {sc.trees === 1 ? 'tree' : 'trees'} in view</p>
         <div className="scorecard">
           <div className="score-row overall"><strong>Overall</strong>
             <span>{design ? <>{design.before.overall} → <strong>{design.after.overall}</strong></> : street.scores.overall}</span></div>
@@ -131,7 +132,7 @@ export default function StreetView({ street: initial, onReset }) {
         {design && (
           <div className="street-design">
             <p>{design.summary}</p>
-            <p className="spent"><strong>${design.spent_usd.toLocaleString()}</strong> of ${design.budget_usd.toLocaleString()} · {design.changes.length} fixes</p>
+            <p className="spent"><strong>${design.spent_usd.toLocaleString()}</strong> of ${design.budget_usd.toLocaleString()} · {design.changes.length} {design.changes.length === 1 ? 'fix' : 'fixes'}</p>
             <ul className="changes">
               {design.changes.map((c, i) => (
                 <li key={i}><span className="badge add">Add</span> <strong>{c.name}</strong> · ${c.price_usd.toLocaleString()}

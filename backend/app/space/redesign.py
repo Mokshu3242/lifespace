@@ -184,6 +184,16 @@ def reachable_rooms(grid: np.ndarray, free: np.ndarray, start: tuple[int, int] |
     return {int(v) for v in np.unique(grid[reached]) if v >= 0}
 
 
+def blocked_reason(space: dict, before: set[int], after: set[int]) -> str:
+    """Why an item can't stand where it was tried, in words: which rooms it cuts off.
+    When it cuts off every room, it is standing at the front door."""
+    lost = before - after
+    if lost == before:
+        return "it would block the front door"
+    cut = ", ".join(r["name"] for r in space["rooms"] if r["id"] in lost)
+    return f"it would block the way into {cut}"
+
+
 # ---------------------------------------------------------------- placement
 def find_spot(grid: np.ndarray, free: np.ndarray, room: int, item: catalog.Item, cell_in: int,
               door_zone: np.ndarray, near: tuple[float, float] | None = None) -> dict | None:
@@ -504,8 +514,7 @@ def redesign(space: dict, budget: float, goals: str, router, context: str = "", 
                    "status": "new"}
             after = reachable_rooms(grid, occupancy(grid, trial + [new], pack), entrance, path_cells)
             if not before <= after:
-                cut = ", ".join(r["name"] for r in space["rooms"] if r["id"] in before - after)
-                return None, tries, [], "", f"it would block the way into {cut}"
+                return None, tries, [], "", blocked_reason(space, before, after)
             if mounted:
                 return new, tries, [], "", ""
             from app.space.simulate import Floor   # here, not at the top: simulate imports this module
