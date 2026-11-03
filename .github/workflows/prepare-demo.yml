@@ -9,6 +9,10 @@ on:
         description: "Every saved plan, not just the samples"
         type: boolean
         default: false
+      add_samples:
+        description: "Read the images in docs/samples as new samples (prints the SAMPLES value)"
+        type: boolean
+        default: false
   schedule:
     - cron: "41 7 * * *"        # every night, 2:41 AM Eastern
 permissions:
@@ -34,6 +38,16 @@ jobs:
       META_IMAGE_MODEL: ${{ secrets.META_IMAGE_MODEL }}
       SAMPLES: home:32ec7da602fa
     steps:
+      - name: Get the sample images
+        if: ${{ inputs.add_samples }}
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs/samples
+      - name: Read the new samples and save them
+        if: ${{ inputs.add_samples }}
+        working-directory: /srv/backend
+        run: python -m scripts.prepare_demo --add "$GITHUB_WORKSPACE/docs/samples"
       - name: Run the samples' days and save them
+        if: ${{ !inputs.add_samples }}
         working-directory: /srv/backend
         run: python -m scripts.prepare_demo ${{ inputs.all && '--all' || '' }}
