@@ -23,5 +23,7 @@ dist/
 # uploaded plans and saved maps
 .data/
 
-# sample plans (not ours to publish)
+# old sample plans (not ours to publish)
+# our own generated samples live in docs/samples/ and are pushed
+/Images/
 /samples/
