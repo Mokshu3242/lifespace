@@ -54,3 +54,12 @@ def test_add_item_refuses_unknown_items_and_wrong_rooms():
     _, log = apply(_bedroom(), [{"action": "add_item", "room": 0, "item": "spaceship", "at": [50, 50]},
                                 {"action": "add_item", "room": 0, "item": "range", "at": [50, 50]}])
     assert not log[0]["ok"] and not log[1]["ok"]
+
+
+def test_split_moves_furniture_in_the_new_piece_to_the_new_room():
+    sp = _space()
+    sp["items"] = [{"id": 0, "item": "smoke-alarm", "x": 17, "y": 5, "w": 1, "d": 1, "room": 0},
+                   {"id": 1, "item": "smoke-alarm", "x": 3, "y": 5, "w": 1, "d": 1, "room": 0}]
+    new, log = apply(sp, [{"action": "split", "room": 0, "from": [50, 10], "to": [50, 90], "name": "Hallway"}])
+    hall = next(r["id"] for r in new["rooms"] if r["name"] == "Hallway")
+    assert [it["room"] for it in new["items"]] == [hall, 0]

@@ -272,7 +272,7 @@ class DoctorAsk(BaseModel):
 def lesson_stats(pack: str = "home"):
     """How many fixes LifeSpace has learned from so far."""
     from app.space import lessons
-    return lessons.stats(pack)
+    return {**lessons.stats(pack), "redesigns_measured": lessons.outcome_stats(pack)}
 
 
 @router.post("/{space_id}/doctor")
@@ -303,6 +303,10 @@ def plan_doctor(space_id: str, ask: DoctorAsk, apply_only: bool = Query(False, a
                 lessons.record(space.get("pack") or "home", "rename", names[f["room"]], f.get("name", ""), f.get("why", ""), "plan check")
             elif f.get("action") == "merge" and f.get("room") in names and f.get("into") in names:
                 lessons.record(space.get("pack") or "home", "merge", names[f["room"]], names[f["into"]], f.get("why", ""), "plan check")
+            elif f.get("action") == "split" and f.get("room") in names:
+                lessons.record(space.get("pack") or "home", "split", names[f["room"]], f.get("name", ""), f.get("why", ""), "plan check")
+            elif f.get("action") == "add_item" and f.get("room") in names:
+                lessons.record(space.get("pack") or "home", "add_item", names[f["room"]], str(f.get("item", "")), f.get("why", ""), "plan check")
     else:
         fixes = [i["fix"] for i in issues if i.get("fix") and i["kind"] != "narrow_door"]
         if ask.use_ai or ask.instruction.strip():
@@ -377,8 +381,10 @@ def create_design(space_id: str, ask: RedesignAsk):
                           style="big" if ask.style == "big" else "small")
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Models are unavailable: {e}")
+    from app.space import lessons
     return _save_design(p.parent / "designs",
-                        {"goals": goals, "style": ask.style if ask.style in ("small", "big") else "small", "provider": get_router().last_provider, **design.to_dict()})
+                        {"goals": goals, "style": ask.style if ask.style in ("small", "big") else "small", "provider": get_router().last_provider,
+                         "learned_from": lessons.outcome_stats(space.get("pack") or "home")["designs"], **design.to_dict()})
 
 
 def _save_design(folder: Path, out: dict) -> dict:
@@ -435,6 +441,13 @@ def run_simulation(space_id: str, ask: SimulateAsk):
     out["time_saved"] = time_saved(out, people or list(_lp(space.get("pack") or "home")))
     from app.space.scorecard import scorecard
     out["scores"] = scorecard(space, after, out)
+    if ask.design_id is not None:
+        # learn: what this redesign did, measured. The next redesign sees it.
+        from app.space import lessons as _lessons
+        try:
+            _lessons.record_outcome(space, space_id, int(ask.design_id), design, out["scores"])
+        except Exception:          # learning must never break the day
+            pass
     folder = p.parent / "sims"
     folder.mkdir(exist_ok=True)
     (folder / f"{ask.design_id or 0}.json").write_text(json.dumps(out), encoding="utf-8")

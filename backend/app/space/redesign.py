@@ -40,7 +40,7 @@ Catalog. You may ONLY use these item ids. Sizes are width x depth in feet:
 
 The safety check finds these basics missing. Cover each one first if the budget allows; they are cheap
 and they count most: {basics}
-
+{learned}
 Make 6 to 14 changes. The user's goals come first: every change should serve them, and the
 reason should say how. Then think about safety, comfort, light and air, and what each room is for.
 {style_rule} Use most of the budget if it helps, but never go over. Use the exact room id of the room the item goes in.
@@ -352,6 +352,21 @@ def pick_within_budget(raws: list[dict], pack: str, budget: float, max_share: fl
     return best | free
 
 
+def learned_block(pack: str) -> str:
+    """What earlier redesigns taught: items in redesigns that were measured, and ideas code refused.
+    Only from days that were actually run and measured, never from a model's own guesses."""
+    from app.space import lessons
+    worked, nope = lessons.what_worked(pack), lessons.refused(pack)
+    out = ""
+    if worked:
+        out += ("\nWhat earlier redesigns did, measured by code after people lived a day in them (use it to choose;\n"
+                "an item's numbers are for the whole redesign it was in):\n" + "\n".join(worked) + "\n")
+    if nope:
+        out += ("Ideas code had to refuse on earlier plans (don't suggest them where the same problem applies):\n"
+                + "\n".join(nope) + "\n")
+    return out
+
+
 def redesign(space: dict, budget: float, goals: str, router, context: str = "", style: str = "small") -> Design:
     pack = space.get("pack") or "home"
     grid = np.array(space["grid"])
@@ -364,7 +379,7 @@ def redesign(space: dict, budget: float, goals: str, router, context: str = "", 
     from app.space.scorecard import basics_missing
     basics = "\n".join("- " + b for b in basics_missing(space, pack)) or "none, the basics are covered"
     ans = router.ask_json(PROMPT.format(context=context, budget=int(budget), goals=goals or "none given", basics=basics, style_rule=STYLES.get(style, STYLES['small'])[1],
-                                        rooms=rooms_txt, items=items_txt, catalog=cat_txt))
+                                        rooms=rooms_txt, items=items_txt, catalog=cat_txt, learned=learned_block(pack)))
     design = Design(summary=str(ans.get("summary") or ""), budget_usd=budget, spent_usd=0, items=items,
                     thoughts=[str(t)[:140] for t in (ans.get("thoughts") or [])[:4] if t])
 

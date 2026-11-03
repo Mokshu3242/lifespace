@@ -29,6 +29,18 @@ def _named(rooms: list[dict], *words: str) -> list[dict]:
     return [r for r in rooms if any(w in r["name"].lower() for w in words)]
 
 
+def _sleep_rooms(rooms: list[dict]) -> list[dict]:
+    """Where people sleep: rooms named bedroom or bed ("Bed 1"). A studio has none: its main room is
+    where the bed is, so the biggest living room counts (or the biggest room at all)."""
+    import re as _re
+    beds = [r for r in rooms if _re.search(r"\bbed", r["name"].lower())]
+    if beds:
+        return beds
+    main = [r for r in rooms if _re.search(r"\b(studio|main|living|great)\b", r["name"].lower())]
+    pool = main or [r for r in rooms if r.get("kind") in ("room", "open") and not _named([r], "kitchen", "hall", "entry", "foyer", "dining")]
+    return [max(pool, key=lambda r: r.get("cells") or r.get("area_sqft") or 0)] if pool else []
+
+
 def _in(items: list[dict], ids: set[str], rooms: list[dict]) -> int:
     """How many of these rooms hold one of these items."""
     room_ids = {it.get("room") for it in items if it.get("item") in ids}
@@ -90,7 +102,7 @@ def score_side(space: dict, items: list[dict], days: dict, pack: str,
             flags.append(f"{r['name']}: a {name} can't get in. {how}; a 32 in door fixes it. Furniture can't.")
 
     # ---- safety: the cheap things that matter most
-    sleep = _named(rooms, "bedroom")
+    sleep = _sleep_rooms(rooms)
     baths = _named(rooms, "bath", "restroom", "wc")
     night_path = sleep + baths + _named(rooms, "hall", "foyer", "corridor")
     checks = []
@@ -143,7 +155,7 @@ def basics_missing(space: dict, pack: str) -> list[str]:
             if not any(it.get("item") == item_id for it in items):
                 out.append(f"{label} (anywhere central)")
         return out
-    sleep, baths = _named(rooms, "bedroom"), _named(rooms, "bath", "restroom", "wc")
+    sleep, baths = _sleep_rooms(rooms), _named(rooms, "bath", "restroom", "wc")
     for r in sleep:
         if not _in(items, {"smoke-alarm"}, [r]):
             out.append(f"Smoke alarm in {r['name']} (room {r['id']})")

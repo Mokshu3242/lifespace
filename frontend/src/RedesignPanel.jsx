@@ -335,6 +335,7 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
       {design && (
         <>
           {design.summary && <p className="summary">{design.summary}</p>}
+          {design.learned_from > 0 && <p className="meta learned">🧠 Learned from {design.learned_from} earlier redesign{design.learned_from > 1 ? 's' : ''} that people lived in and code measured</p>}
           <button className="tool watch" onClick={replay} disabled={replaying || improving}>
             {replaying ? 'Furnishing…' : '▶ Watch it being furnished'}
           </button>

@@ -191,7 +191,7 @@ def apply(space: dict, fixes: list[dict]) -> tuple[dict, list[dict]]:
             else:
                 raise ValueError(f"unknown action {a}")
             log.append({"fix": f, "ok": True, "note": f.get("why", "")})
-        except (KeyError, TypeError, ValueError) as e:
+        except (KeyError, IndexError, TypeError, ValueError) as e:
             log.append({"fix": f, "ok": False, "note": str(e)})
     s["grid"] = g.tolist()
     return s, log
@@ -255,6 +255,12 @@ def _split(g: np.ndarray, s: dict, rid: int, a, b, name: str) -> int:
     other = next(i for c, i in pieces if i != keep)
     new_id = max(r["id"] for r in s["rooms"]) + 1
     g[lab == other] = new_id                        # the cut line itself stays with the old room
+    # furniture standing in the new piece now belongs to the new room
+    for it in s.get("items") or []:
+        if it.get("room") == rid:
+            ix, iy = int(it.get("x", -1)), int(it.get("y", -1))
+            if 0 <= iy < rows and 0 <= ix < cols and g[iy, ix] == new_id:
+                it["room"] = new_id
     nr = {"id": new_id, "name": name, "kind": kind_of(name), "source": "ai fix", "unsure": False,
           "note": "split off by the plan check", "dims_text": None, "dims_ft": None}
     s["rooms"].append(nr)
