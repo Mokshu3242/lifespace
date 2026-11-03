@@ -524,3 +524,23 @@ textarea { max-width: 100%; }
 .view3d-tools > * { flex: none; }
 .view3d-tools.fp-pick { flex-wrap: wrap; overflow-x: visible; }
 .learned { color: var(--accent); font-weight: 600; }
+/* shopping list */
+.shop { margin: 10px 0; }
+.shop-open { width: 100%; text-align: left; font-weight: 600; }
+.shop-list { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.shop-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.shop-list h4 { margin: 10px 0 4px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.shop-list ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.shop-list li label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; }
+.shop-list li .meta { margin: 0 0 2px 24px; font-size: 0.76rem; }
+.shop-name { flex: 1; }
+.shop-price { font-variant-numeric: tabular-nums; font-weight: 600; }
+.shop-list li.got .shop-name { text-decoration: line-through; color: var(--muted); }
+.shop-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.shop-actions { display: flex; gap: 6px; }
+@media print {
+  body * { visibility: hidden !important; }
+  #shop-print, #shop-print * { visibility: visible !important; }
+  #shop-print { position: absolute; inset: 0 auto auto 0; width: 100%; border: none; background: #fff; color: #000; }
+  #shop-print .shop-actions { display: none; }
+}

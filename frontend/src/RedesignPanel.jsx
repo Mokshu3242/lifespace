@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
+import ShoppingList from './ShoppingList'
 import { isMeta, modelLabel } from './mapStyle'
 
 const ACTION = { add: 'Add', replace: 'Replace', remove: 'Remove' }
@@ -358,6 +359,7 @@ export default function RedesignPanel({ space, dirty, design, onDesign, onShowAf
               </li>
             ))}
           </ul>
+          <ShoppingList space={space} design={design} roomName={roomName} />
           {dropped.length > 0 && (
             <details className="dropped">
               <summary>{dropped.length} {dropped.length === 1 ? "idea" : "ideas"} rejected by the fit, budget and safety checks</summary>
