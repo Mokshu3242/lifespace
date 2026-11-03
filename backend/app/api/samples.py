@@ -1,8 +1,8 @@
 """Sample spaces for the start page: plans already read and worked on, opened by id.
 No file upload, no model calls, and the sample pictures never have to sit in the public repo.
 
-Pick them with the SAMPLES setting, for example
-  SAMPLES=home:32ec7da602fa,office:071d055fdc95,street:ab12cd34ef56
+Pick them with the SAMPLES setting, a list shown in order, for example
+  SAMPLES=home:073c1ff1e713:Family home,street:1674e2e9c9b2:Busy street
 Without it, the most worked-on saved home and office and the newest street are used."""
 import json
 import os
@@ -12,7 +12,7 @@ from fastapi import APIRouter
 from app.config import ROOT
 
 router = APIRouter(prefix="/api/samples", tags=["samples"])
-LABEL = {"home": ("🌿", "Home with terrace (best demo)"), "office": ("🏢", "Small office"), "street": ("🚏", "A city street")}
+LABEL = {"home": ("🏠", "A home"), "office": ("🏢", "An office"), "street": ("🚏", "A street")}
 
 
 def _work(folder):
@@ -20,17 +20,30 @@ def _work(folder):
     return sum(1 for _ in folder.glob("designs/*")) + sum(1 for _ in folder.glob("sims/*")) + (folder / "family.json").exists()
 
 
+def _card(kind: str, sid: str, label: str = "") -> dict:
+    icon, default = LABEL.get(kind, ("🏠", "A space"))
+    thumb = f"/api/streets/{sid}/photo" if kind == "street" else f"/api/spaces/{sid}/image"
+    return {"kind": kind, "id": sid, "icon": icon, "label": label or default, "thumb": thumb}
+
+
 @router.get("")
 def samples():
-    chosen = {}
+    """SAMPLES is a list, shown in order: kind:id or kind:id:Card name, e.g.
+    home:073c1ff1e713:Family home,street:1674e2e9c9b2:Busy street. When it's set, only those are shown."""
+    spaces, streets = ROOT / ".data" / "spaces", ROOT / ".data" / "streets"
+    out = []
     for part in (os.environ.get("SAMPLES") or "").split(","):
-        if ":" in part:
-            k, v = part.split(":", 1)
-            chosen[k.strip()] = v.strip()
-    spaces = ROOT / ".data" / "spaces"
-    for pack in ("home", "office"):
-        if pack in chosen and (spaces / chosen[pack] / "map.json").exists():
+        bits = [b.strip() for b in part.split(":", 2)]
+        if len(bits) < 2 or bits[0] not in LABEL:
             continue
+        kind, sid = bits[0], bits[1]
+        there = (streets / sid / "photo.png").exists() if kind == "street" else (spaces / sid / "map.json").exists()
+        if there:
+            out.append(_card(kind, sid, bits[2] if len(bits) > 2 else ""))
+    if out or os.environ.get("SAMPLES"):
+        return out
+    # no list set: the most worked-on saved home and office, and the newest street
+    for pack in ("home", "office"):
         best = None
         for mp in spaces.glob("*/map.json"):
             try:
@@ -42,19 +55,9 @@ def samples():
             if best is None or score > best[0]:
                 best = (score, mp.parent.name)
         if best:
-            chosen[pack] = best[1]
-    streets = ROOT / ".data" / "streets"
-    if "street" not in chosen or not (streets / chosen["street"]).exists():
-        found = sorted((p for p in streets.glob("*") if p.is_dir() and (p / "photo.png").exists()),
-                       key=lambda p: p.stat().st_mtime, reverse=True) if streets.exists() else []
-        if found:
-            chosen["street"] = found[0].name
-    out = []
-    for kind in ("home", "office", "street"):
-        if kind not in chosen:
-            continue
-        icon, label = LABEL[kind]
-        sid = chosen[kind]
-        thumb = f"/api/streets/{sid}/photo" if kind == "street" else f"/api/spaces/{sid}/image"
-        out.append({"kind": kind, "id": sid, "icon": icon, "label": label, "thumb": thumb})
+            out.append(_card(pack, best[1]))
+    found = sorted((p for p in streets.glob("*") if p.is_dir() and (p / "photo.png").exists()),
+                   key=lambda p: p.stat().st_mtime, reverse=True) if streets.exists() else []
+    if found:
+        out.append(_card("street", found[0].name))
     return out
