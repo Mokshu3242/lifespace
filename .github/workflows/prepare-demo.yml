@@ -36,7 +36,7 @@ jobs:
       META_API_KEY: ${{ secrets.META_API_KEY }}
       META_CHAT_MODEL: ${{ secrets.META_CHAT_MODEL }}
       META_IMAGE_MODEL: ${{ secrets.META_IMAGE_MODEL }}
-      SAMPLES: home:32ec7da602fa
+      SAMPLES: home:073c1ff1e713,home:3636cf4185b9,street:1674e2e9c9b2,street:e2766b318bc5
     steps:
       - name: Get the sample images
         if: ${{ inputs.add_samples }}
