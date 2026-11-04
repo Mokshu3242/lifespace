@@ -217,7 +217,7 @@ button.small { padding: 4px 10px; font-size: 0.8rem; margin-top: 8px; }
 .nav { display: flex; align-items: center; gap: 20px; padding: 14px 24px; border-bottom: 1px solid var(--line);
   background: var(--card); position: sticky; top: 0; z-index: 20; }
 .brand { font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; display: flex; gap: 8px; align-items: center; }
-.logo { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+.logo { display: block; width: 30px; height: 30px; border-radius: 8px;
   background: var(--accent); color: #fff; font-size: 0.95rem; }
 .nav nav { display: flex; gap: 4px; flex: 1; }
 .nav nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 0.92rem; }

@@ -8,6 +8,7 @@ Code is exact and free; AI only does the part code can't (reading the drawing's 
 """
 from __future__ import annotations
 
+import contextvars
 import io
 import re
 from dataclasses import dataclass, field
@@ -774,7 +775,7 @@ def read_floor_plan(image_bytes: bytes, router, pack: str = "home", describe: st
     # at the same time as the naming below: two Meta waits at once instead of one after the other
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=1) as pool:
-        ask_overview = pool.submit(router.see, OVERVIEW_PROMPT.format(context=context, n=len(marks)),
+        ask_overview = pool.submit(contextvars.copy_context().run, router.see, OVERVIEW_PROMPT.format(context=context, n=len(marks)),
                                    draw_marks(gray, marks))
         labels = name_spaces(gray, marks, regions, router, context,
                              texts=[t for t in all_texts if t.is_dims or ocr._is_name(t.text)])

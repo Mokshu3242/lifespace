@@ -131,6 +131,11 @@ def ask_many(png: bytes, words: list[str], router, s) -> dict[str, list]:
             log.warning("SAM failed for %r: %s", w, e)
             return w, None
     if todo:
+        from app.budget import BudgetClosed, spend
+        try:
+            spend()
+        except BudgetClosed:
+            return out          # budget used up: the shape finder's items stand
         with ThreadPoolExecutor(max_workers=min(6, len(todo))) as pool:
             for w, boxes in pool.map(one, todo):
                 if boxes is not None:

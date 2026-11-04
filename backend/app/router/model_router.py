@@ -19,6 +19,7 @@ import time
 from PIL import Image
 
 from app.config import Settings, get_settings
+from app.budget import spend
 from app.router.cache import DiskCache
 from app.router.providers import (ProviderError, build_chat_providers,
                                   build_image_providers)
@@ -91,6 +92,7 @@ class ModelRouter:
         if hit is not None:
             self.last_provider = hit["provider"] + " (cache)"
             return hit["text"]
+        spend()
 
         errors = []
         for name in chain:
@@ -170,6 +172,7 @@ class ModelRouter:
             if hit is not None:
                 out[name] = hit
                 continue
+            spend()
             try:
                 t0 = time.time()
                 text = self.chat_providers[name].chat(msgs, json_mode=True, vision=True, temperature=0.1)
@@ -195,6 +198,7 @@ class ModelRouter:
         if hit is not None:
             self.last_provider = hit["provider"] + " (cache)"
             return base64.b64decode(hit["b64"])
+        spend()
         errors = []
         for name in chain:
             try:

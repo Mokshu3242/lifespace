@@ -126,7 +126,7 @@ export default function App() {
     <div className="site">
       <header className="nav">
         <a className="brand" href="#/" onClick={reset}>
-          <span className="logo" aria-hidden>◫</span> LifeSpace
+          <img className="logo" src="/logo.svg" alt="" aria-hidden /> LifeSpace
         </a>
         <nav>
           {/* from a street, Start goes back to the start page; from a plan it stays on "Your space" */}

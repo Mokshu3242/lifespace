@@ -19,6 +19,15 @@ settings = get_settings()
 app = FastAPI(title="LifeSpace API", version="0.1.0")
 from app.ratelimit import limit as _limit   # noqa: E402
 app.middleware("http")(_limit)
+
+from fastapi.responses import JSONResponse as _JSON   # noqa: E402
+from app.budget import BudgetClosed as _BudgetClosed   # noqa: E402
+
+
+@app.exception_handler(_BudgetClosed)
+async def _budget_closed(_req, _exc):
+    return _JSON({"detail": "The demo has used today's AI limit. The sample plans, 3D view and saved days "
+                            "still work. Try again tomorrow."}, status_code=429)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.frontend_origin.split(",") if o.strip()],

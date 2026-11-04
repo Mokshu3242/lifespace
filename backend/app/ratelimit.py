@@ -2,18 +2,23 @@
 which is fine for a demo. Off in mock and local modes."""
 from __future__ import annotations
 
+import os
 import time
 from collections import defaultdict
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from app.budget import closed, spent
 from app.config import get_settings
 
 READS = ("/api/spaces", "/api/streets")                      # POST here = a new plan or photo read
 ACTIONS = ("/designs", "/simulate", "/future", "/ask", "/talk", "/comic", "/doctor", "/restyle",
            "/render", "/family", "/compare")
 _hits: dict[tuple[str, str, int], int] = defaultdict(int)
+# one budget for the whole site: at most this many AI actions a day that really reach Meta's models
+GLOBAL_CAP = int(os.getenv("GLOBAL_AI_PER_DAY", "30"))
+_site: dict[int, int] = defaultdict(int)
 
 
 def _who(req: Request) -> str:
@@ -38,4 +43,12 @@ async def limit(req: Request, call_next):
         return JSONResponse({"detail": f"Daily limit reached for this demo ({cap} {'plan reads' if kind == 'read' else 'AI actions'}). "
                                        "The sample plans still work. Try again tomorrow."}, status_code=429)
     _hits[key] += 1
-    return await call_next(req)
+    box = [0]
+    t1, t2 = closed.set(_site[day] >= GLOBAL_CAP), spent.set(box)
+    try:
+        resp = await call_next(req)
+    finally:
+        closed.reset(t1); spent.reset(t2)
+    if box[0]:
+        _site[day] += 1        # only actions that really used a model count
+    return resp
