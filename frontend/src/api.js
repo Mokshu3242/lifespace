@@ -20,6 +20,13 @@ const KEY = (() => {
 const fetch = (url, opt = {}) =>
   window.fetch(url, KEY ? { ...opt, headers: { ...(opt.headers || {}), 'X-Demo-Key': KEY } } : opt)
 
+// plans uploaded in this browser, so the Compare page can show them next to the samples
+const mine = () => { try { return JSON.parse(localStorage.getItem('ls_mine') || '[]') } catch { return [] } }
+const remember = (s) => {
+  try { if (s && s.id) localStorage.setItem('ls_mine', JSON.stringify([...new Set([s.id, ...mine()])].slice(0, 20))) } catch {}
+  return s
+}
+
 export const api = {
   health: () => fetch(API + '/api/health').then(handle),
   uploadPlan: (file, { fresh = false, pack = 'home', describe = '' } = {}) => {
@@ -27,10 +34,10 @@ export const api = {
     body.append('file', file)
     const q = new URLSearchParams({ pack, describe: describe.trim() })
     if (fresh) q.set('fresh', 'true')
-    return fetch(`${API}/api/spaces?${q}`, { method: 'POST', body }).then(handle)
+    return fetch(`${API}/api/spaces?${q}`, { method: 'POST', body }).then(handle).then(remember)
   },
   getSpace: (id) => fetch(`${API}/api/spaces/${id}`).then(handle),
-  listSpaces: () => fetch(API + '/api/spaces').then(handle),
+  listSpaces: () => fetch(`${API}/api/spaces?mine=${encodeURIComponent(mine().join(','))}`).then(handle),
   ask: (id, question, designId) =>
     fetch(`${API}/api/spaces/${id}/ask`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

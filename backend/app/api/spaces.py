@@ -145,10 +145,15 @@ async def create_space(file: UploadFile = File(...),
 
 
 @router.get("")
-def list_spaces():
+def list_spaces(mine: str = ""):
     """Saved plans grouped by layout (the same image uploaded again is one layout), newest first,
     each with every redesign made on any of its reads."""
     import hashlib
+    import os
+    # only the sample plans plus this visitor's own uploads, so nobody sees someone else's plan
+    allowed = {p.split(":")[1] for p in (os.environ.get("SAMPLES") or "").split(",") if p.count(":") >= 1}
+    allowed |= {x for x in mine.split(",") if x}
+    open_list = not os.environ.get("SAMPLES")          # local runs without SAMPLES list everything
     groups: dict[str, dict] = {}
     for f in sorted(STORE.glob("*/map.json"), key=lambda f: f.stat().st_mtime, reverse=True)[:200]:
         try:
@@ -156,6 +161,8 @@ def list_spaces():
             img = f.parent / "plan.img"
             key = hashlib.sha256(img.read_bytes()).hexdigest()[:16] if img.exists() else s["id"]
         except (OSError, ValueError, KeyError):
+            continue
+        if not open_list and s["id"] not in allowed:
             continue
         g = groups.get(key)
         if g is None:
