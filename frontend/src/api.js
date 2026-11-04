@@ -9,6 +9,17 @@ async function handle(r) {
 // Pictures still load through the site's own /api path.
 const API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
+// Judge pass: open the site once with ?key=CODE and that browser skips the daily AI limit.
+const KEY = (() => {
+  try {
+    const m = (location.search + location.hash).match(/[?&]key=([^&#]+)/)
+    if (m) localStorage.setItem('ls_key', decodeURIComponent(m[1]))
+    return localStorage.getItem('ls_key') || ''
+  } catch { return '' }
+})()
+const fetch = (url, opt = {}) =>
+  window.fetch(url, KEY ? { ...opt, headers: { ...(opt.headers || {}), 'X-Demo-Key': KEY } } : opt)
+
 export const api = {
   health: () => fetch(API + '/api/health').then(handle),
   uploadPlan: (file, { fresh = false, pack = 'home', describe = '' } = {}) => {

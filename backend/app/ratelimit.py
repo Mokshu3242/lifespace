@@ -2,6 +2,7 @@
 which is fine for a demo. Off in mock and local modes."""
 from __future__ import annotations
 
+import hmac
 import os
 import time
 from collections import defaultdict
@@ -30,6 +31,9 @@ async def limit(req: Request, call_next):
     s = get_settings()
     if req.method != "POST" or s.mode != "prod":
         return await call_next(req)
+    judge = os.getenv("JUDGE_KEY", "")
+    if judge and hmac.compare_digest(req.headers.get("x-demo-key", ""), judge):
+        return await call_next(req)          # judges with the pass skip every limit
     path = req.url.path.rstrip("/")
     kind = "read" if path in READS else "action" if any(a in path for a in ACTIONS) else None
     if kind is None:
