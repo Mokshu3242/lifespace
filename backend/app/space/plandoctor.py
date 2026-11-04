@@ -39,7 +39,7 @@ Problems the program noticed:
 Propose fixes using ONLY these actions:
 - {{"action": "rename", "room": id, "name": "Bedroom 2", "why": "..."}}  use the name printed on the plan if there is one
 - {{"action": "merge", "room": id, "into": id, "why": "..."}}  a small piece that is really part of another room
-- {{"action": "widen_door", "door": index, "width_in": 32, "why": "..."}}  only when asked, or a walker or wheelchair needs it
+- {{"action": "widen_door", "door": index, "width_in": 32, "why": "..."}}  only when asked, or a wheelchair needs it
 - {{"action": "set_entrance", "room": id, "why": "..."}}
 - {{"action": "split", "room": id, "from": [x, y], "to": [x, y], "name": "Hallway", "why": "..."}}  when the plan shows
   two rooms (two printed names) that the program read as one room: a line in percent of the picture, along
@@ -50,6 +50,7 @@ Propose fixes using ONLY these actions:
   drawn, in percent of the picture. Pick the item id from this list: {catalog}
 Items already on the map: {items}
 Use ids and door indexes from the lists. At most 12 fixes. Plain short reasons.
+A walker is about 25 in wide and fits through a 27 in door; a wheelchair needs about 32 in.
 Return JSON: {{"summary": "one sentence", "fixes": [...]}}"""
 
 
@@ -119,8 +120,8 @@ def check(space: dict) -> list[dict]:
         if d.get("width_in", 99) < 28 and not d.get("outside"):
             rn = [next((r["name"] for r in rooms if r["id"] == x), "?") for x in d.get("rooms", [])]
             issues.append({"kind": "narrow_door", "door": i,
-                           "text": f"Door {' to '.join(rn)} is {d['width_in']} in: a walker needs about 32 in",
-                           "fix": {"action": "widen_door", "door": i, "width_in": 32, "why": "renovation what-if: 32 in fits a walker"}})
+                           "text": f"Door {' to '.join(rn)} is {d['width_in']} in: a wheelchair needs about 32 in",
+                           "fix": {"action": "widen_door", "door": i, "width_in": 32, "why": "renovation what-if: 32 in fits a wheelchair"}})
     return issues
 
 

@@ -34,6 +34,12 @@ def _age_and_aid(p: dict) -> tuple[int, str]:
     return int(age), mob
 
 
+def _stuck(leg: dict) -> bool:
+    """A trip the person really can't make. A step with nowhere to do it in this kind of space
+    ("no place to greet here") is not a blocked trip: nothing about their body or the doors stops them."""
+    return bool(leg["blocked"]) and "no place" not in (leg.get("why") or "")
+
+
 def age_person(p: dict, years: int) -> tuple[dict, str]:
     """The person `years` from now, and what changed (a plain-words assumption, or "")."""
     age, mob = _age_and_aid(p)
@@ -81,13 +87,13 @@ def future(space: dict, people: list[dict], items: list[dict] | None, years: int
     breaks = []
     for p, q in zip(people, later):
         a, b = now[p["id"]], then[q["id"]]
-        newly = [lg for la, lg in zip(a["legs"], b["legs"]) if lg["blocked"] and not la["blocked"]]
+        newly = [lg for la, lg in zip(a["legs"], b["legs"]) if _stuck(lg) and not _stuck(la)]
         for lg in newly:
             breaks.append({"person": q["name"], "t": lg["t"], "note": lg["note"], "why": lg["why"]})
     still = []
     for p, q in zip(people, later):
         for la, lg in zip(now[p["id"]]["legs"], then[q["id"]]["legs"]):
-            if la["blocked"] and lg["blocked"]:
+            if _stuck(la) and _stuck(lg):
                 s = f"{q['name']}: {lg['note']}"
                 if s not in still:
                     still.append(s)

@@ -267,7 +267,7 @@ export default function PlanEditor({ space, onReset }) {
           <span className="chip-stat"><b>{rooms.length}</b> {rooms.length === 1 ? 'room' : 'rooms'}</span>
           <span className="chip-stat"><b>{Object.values(totals).reduce((a, b) => a + (b || 0), 0).toLocaleString()}</b> sq ft</span>
           <span className="chip-stat"><b>{doors.length}</b> {doors.length === 1 ? 'doorway' : 'doorways'}</span>
-          {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> narrow for a walker</span>}
+          {doors.some((d) => d.width_in < 30) && <span className="chip-stat warn-chip"><b>{doors.filter((d) => d.width_in < 30).length}</b> tight for a wheelchair</span>}
           <span className="chip-stat"><b>{items.length}</b> {items.length === 1 ? 'item' : 'items'} found</span>
           {design && <span className="chip-stat good-chip">Design {design.id}: <b>{keptChanges}</b> {keptChanges === 1 ? 'change' : 'changes'}</span>}
           {sim?.scores && <span className="chip-stat">Safety <b>{sim.scores.after.safety.score}</b> · Access <b>{sim.scores.after.access.score}</b></span>}
@@ -306,7 +306,7 @@ export default function PlanEditor({ space, onReset }) {
         {view === '2d' && (
           <div className="legend" aria-label="Map key">
             <span><i className="k door-ok" />Doorway</span>
-            <span><i className="k door-narrow" />Too narrow for a walker</span>
+            <span><i className="k door-narrow" />Under 30 in (tight for a wheelchair)</span>
             <span><i className="k item" />Item found</span>
             <span><i className="k item-new" />New in the redesign</span>
             <span><i className="k item-gone" />Taken out</span>
@@ -420,7 +420,7 @@ export default function PlanEditor({ space, onReset }) {
               {[...doors].sort((a, b) => a.width_in - b.width_in).map((d, i) => (
                 <li key={i} className={d.width_in < 30 ? 'narrow' : ''}>
                   {[...new Set(d.rooms.map((id) => rooms.find((r) => r.id === id)?.name).filter(Boolean))].join(' ↔ ') || 'Door'}{d.outside && ' (front door)'}{d.has_door === false && ' (open, no door)'}
-                  {' · '}{d.width_in} in{d.width_in < 30 && ' · narrow for a walker or wheelchair'}{d.widened && ' · widened (what-if)'}
+                  {' · '}{d.width_in} in{d.width_in < 30 && ' · tight for a wheelchair'}{d.widened && ' · widened (what-if)'}
                 </li>
               ))}
             </ul>
