@@ -81,7 +81,10 @@ def create_design(street_id: str, ask: StreetAsk):
         design = street.redesign(read, ask.budget, " ".join(ask.goals.split()), get_router())
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Models are unavailable: {e}")
+    except Exception as e:  # shown to the user instead of "Failed to fetch"
+        raise HTTPException(500, f"The street redesign failed: {e}")
     folder = p / "designs"
+    folder.mkdir(exist_ok=True)          # Supabase doesn't keep empty folders, so it may be missing after a restart
     n = len([f for f in folder.glob("*.json") if f.stem.isdigit()]) + 1
     while True:
         try:
@@ -107,6 +110,8 @@ def render_design(street_id: str, n: int):
         png = get_router().render(street.render_prompt(read, design), (p / "photo.png").read_bytes())
     except AllProvidersFailed as e:
         raise HTTPException(503, f"Image models are unavailable: {e}")
+    except Exception as e:
+        raise HTTPException(500, f"Drawing the street failed: {e}")
     (p / "designs" / f"{n}.png").write_bytes(png)
     return {"ok": True, "provider": get_router().last_provider}
 
